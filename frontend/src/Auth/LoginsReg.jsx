@@ -8,6 +8,7 @@ const LoginReg = () => {
   const [isRegister, setIsRegister] = useState(false);
   const [formData, setFormData] = useState({});
   const [users, setUsers] = useState([]);
+  const [showPassword, setShowPassword] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -81,59 +82,122 @@ const LoginReg = () => {
   };
 
   return (
-    <div>
-      <h1>Login & Register</h1>
-      <button onClick={() => openModal(false)}>Login</button>
-      <button onClick={() => openModal(true)}>Register</button>
+   
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-600 to-purple-600 p-4">
+    <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8">
+      <div className="mb-6 text-center">
+        <h1 className="text-3xl font-extrabold text-gray-800 mb-2">
+          {isRegister ? 'Create Account' : 'Welcome Back'}
+        </h1>
+        <p className="text-sm text-gray-500">
+          {isRegister ? 'Register to get started' : 'Login to your account'}
+        </p>
+      </div>
+
+      <div className="flex justify-center gap-4 mb-6">
+        <button
+          onClick={() => openModal(false)}
+          className={`px-4 py-2 rounded-full font-medium ${
+            !isRegister
+              ? 'bg-indigo-600 text-white shadow-md'
+              : 'bg-gray-100 text-gray-800'
+          }`}
+        >
+          Login
+        </button>
+        <button
+          onClick={() => openModal(true)}
+          className={`px-4 py-2 rounded-full font-medium ${
+            isRegister
+              ? 'bg-indigo-600 text-white shadow-md'
+              : 'bg-gray-100 text-gray-800'
+          }`}
+        >
+          Register
+        </button>
+      </div>
 
       {insertModal && (
-        <div className="modal">
-          <h2>{isRegister ? 'Register' : 'Login'}</h2>
-          <form onSubmit={isRegister ? handleRegisterSubmit : handleLoginSubmit}>
-            {isRegister && (
-              <>
-                <input
-                  type="text"
-                  name="uname"
-                  placeholder="Full Name"
-                  value={formData.uname || ''}
-                  onChange={handleInsertChange}
-                  required
-                />
-                <input
-                  type="text"
-                  name="username"
-                  placeholder="Username"
-                  value={formData.username || ''}
-                  onChange={handleInsertChange}
-                  required
-                />
-              </>
-            )}
+        <form
+          onSubmit={isRegister ? handleRegisterSubmit : handleLoginSubmit}
+          className="space-y-5"
+        >
+          {isRegister && (
+            <>
+              <input
+                type="text"
+                name="uname"
+                placeholder="Full Name"
+                value={formData.uname || ''}
+                onChange={handleInsertChange}
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <input
+                type="text"
+                name="username"
+                placeholder="Username"
+                value={formData.username || ''}
+                onChange={handleInsertChange}
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </>
+          )}
+
+          <input
+            type="email"
+            name={isRegister ? 'uemail' : 'email'}
+            placeholder="Email"
+            value={isRegister ? formData.uemail || '' : formData.email || ''}
+            onChange={handleInsertChange}
+            required
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+
+          <div className="relative">
             <input
-              type="email"
-              name={isRegister ? 'uemail' : 'email'}
-              placeholder="Email"
-              value={isRegister ? formData.uemail || '' : formData.email || ''}
-              onChange={handleInsertChange}
-              required
-            />
-            <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               name={isRegister ? 'upassword' : 'password'}
               placeholder="Password"
-              value={isRegister ? formData.upassword || '' : formData.password || ''}
+              value={
+                isRegister
+                  ? formData.upassword || ''
+                  : formData.password || ''
+              }
               onChange={handleInsertChange}
               required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-            <div className="modal-actions">
-              <button type="submit">{isRegister ? 'Register' : 'Login'}</button>
-              <button type="button" onClick={() => setInsertModal(false)}>Close</button>
-            </div>
-          </form>
-        </div>
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-3 text-sm text-gray-500 hover:text-indigo-600"
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+
+          <div className="flex gap-4">
+            <button
+              type="submit"
+              className="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-semibold"
+            >
+              {isRegister ? 'Register' : 'Login'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setInsertModal(false)}
+              className="w-full py-3 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       )}
     </div>
+  </div>
+
   );
 };
 
