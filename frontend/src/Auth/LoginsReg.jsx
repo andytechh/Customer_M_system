@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const apiURL = 'http://localhost/Customer_M_system/backend/api/indexLogin.php?action=';
 
 const LoginReg = () => {
+  const navigate = useNavigate();
   const [insertModal, setInsertModal] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
   const [formData, setFormData] = useState({});
@@ -50,6 +52,7 @@ const LoginReg = () => {
       if (!response.data.error) {
         alert('Login successful!');
         setInsertModal(false);
+        navigate('/cust-dashboard'); // Redirect to the dashboard or another page
       } else {
         alert(response.data.message);
       }
