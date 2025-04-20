@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   Search, LayoutGrid, Users, ShoppingBag, Bot,
-  CircleHelp, MessageCircleWarning, Settings, Menu
+  CircleHelp, MessageCircleWarning, Settings, Menu, Bell, UserPen
 } from 'lucide-react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 
@@ -45,8 +45,8 @@ const DashboardLayout = () => {
           </div>
         </div>
         <div className="space-x-4 hidden md:flex">
-          <button className="text-gray-600 hover:text-indigo-600">Notifications</button>
-          <button className="text-gray-600 hover:text-indigo-600">Profile</button>
+          <button className="text-gray-600 hover:text-indigo-600 ml-4"><Bell /></button>
+          <button className="text-gray-600 hover:text-indigo-600"><UserPen /></button>
         </div>
       </header>
 
@@ -60,8 +60,8 @@ const DashboardLayout = () => {
           <nav className="h-[93vh] p-6 space-y-4 flex flex-col justify-between">
             <ul className="space-y-2">
               <NavItem to="/dashboard" icon={<LayoutGrid />} label="Dashboard" path={location.pathname} />
-              <NavItem to="/users" icon={<Users />} label="Customers" path={location.pathname} />
-              <NavItem to="/customers" icon={<ShoppingBag />} label="Orders" path={location.pathname} />
+              <NavItem to="/customers" icon={<Users />} label="Customers" path={location.pathname} />
+              <NavItem to="/orders" icon={<ShoppingBag />} label="Orders" path={location.pathname} />
               <NavItem to="/reports" icon={<Bot />} label="AI Recommendations" path={location.pathname} />
               <NavItem to="/support" icon={<CircleHelp />} label="Chat Support" path={location.pathname} />
               <NavItem to="/report-issues" icon={<MessageCircleWarning />} label="Reports" path={location.pathname} />
@@ -75,7 +75,7 @@ const DashboardLayout = () => {
         </aside>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col ml-0 md:ml-64 h-full">
+        <div className="flex-1 flex flex-col h-full items-center">
           <main className="flex flex-col p-6 overflow-auto items-center justify-center w-full">
             <Outlet />
           </main>

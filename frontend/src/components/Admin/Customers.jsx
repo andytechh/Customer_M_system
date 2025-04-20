@@ -1,72 +1,350 @@
-// import React, { useEffect, useState } from 'react';
-// import axios from 'axios';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { Navigate, useNavigate, Link } from 'react-router-dom';
+import { SquarePen, Trash2 } from 'lucide-react';
 
-// const apiURL = 'http://localhost/Customer_M_system/backend/api/indexLogin.php?action=view';
-
-// const Customers = () => {
-//   const [customers, setCustomers] = useState([]);
-//   const [loading, setLoading] = useState(true);
-
-//   useEffect(() => {
-//     const fetchCustomers = async () => {
-//       try {
-//         const response = await axios.get(apiURL);
-//         if (!response.data.error) {
-//           setCustomers(response.data.users); 
-//         } else {
-//           alert(response.data.message);
-//         }
-//       } catch (error) {
-//         console.error('Error fetching customers:', error);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchCustomers();
-//   }, []);
-
-//   if (loading) return <p className="text-center text-gray-600">Loading customers...</p>;
-
-//   return (
-//     <div className="p-4">
-//       <h2 className="text-xl font-bold mb-4">Customer List</h2>
-//       <table className="min-w-full border border-gray-300 text-sm">
-//         <thead className="bg-gray-100">
-//           <tr>
-//             <th className="border p-2">Name</th>
-//             <th className="border p-2">Username</th>
-//             <th className="border p-2">Email</th>
-//             <th className="border p-2">Account Status</th>
-//             <th className="border p-2">Time Created</th>
-//           </tr>
-//         </thead>
-//         <tbody>
-//           {customers.map((c, i) => (
-//             <tr key={i} className="hover:bg-gray-50">
-//               <td className="border p-2">{c.uname}</td>
-//               <td className="border p-2">{c.username}</td>
-//               <td className="border p-2">{c.email}</td> 
-//               <td className="border p-2">{c.ustatus}</td>
-//               <td className="border p-2">{c.created_at}</td>
-//             </tr>
-//           ))}
-//         </tbody>
-//       </table>
-//     </div>
-//   );
-// };
-
-// export default Customers;
-
-import React from 'react'
+const apiURL = 'http://localhost/Customer_M_system/backend/api/indexLogin.php?action=view';
 
 const Customers = () => {
-  return (
-    <div>
-      Customers Page
-    </div>
-  )
-}
+  const [users, setUsers] = useState([]);
+  const [openModal, setOpenModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [formData, setFormData] = useState({ uname: '', username: '', uemail: '', upassword: '', ucreated: '' });
+  const [loading, setLoading] = useState(true);
+  const [loadingDuration] = useState(2000);
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const navigate = useNavigate();
 
-export default Customers
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get(apiURL);
+      if (!response.data.error && Array.isArray(response.data.users)) {
+        setUsers(response.data.users);
+      } else {
+        alert(response.data.message || 'No users found');
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setTimeout(() => setLoading(false), loadingDuration);
+    }
+  };
+ 
+  const del = async (id) => {
+    try {
+      const formData = new URLSearchParams();
+      formData.append('userId', id);
+  
+      const res = await axios.post('http://localhost/Customer_M_system/backend/api/indexLogin.php?action=deleteUser', formData);
+  
+      alert(res.data.message);
+      if (!res.data.error) {
+        fetchUsers();
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting user');
+    }
+  };
+  
+  
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await axios.post('http://localhost/Customer_M_system/backend/api/indexLogin.php?action=register', formData);
+      alert(res.data.message);
+      setOpenModal(false);
+      fetchUsers();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  
+
+  const filteredUsers = users.filter(user =>
+    user.uname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  const handleView = async (userId) => {
+    try {
+      const res = await axios.get(`http://localhost/Customer_M_system/backend/api/indexLogin.php?action=viewUser`, {
+        params: { user_id: userId }
+      });
+  
+      if (!res.data.error) {
+        const user = res.data.user;
+        navigate(`/users/${userId}`, { state: { user } });
+      } else {
+        alert(res.data.message);
+      }
+    } catch (error) {
+      alert('Error viewing user');
+      console.error(error);
+    }
+  };
+  
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      const formData = new FormData();
+      formData.append("user_id", editingCustomer.user_id);
+      formData.append("uname", editingCustomer.uname);
+      formData.append("username", editingCustomer.username);
+      formData.append("contacts", editingCustomer.contacts);
+      formData.append("status", editingCustomer.status);
+      formData.append("email", editingCustomer.email);
+      formData.append("password", editingCustomer.password || ''); 
+      
+      const res = await axios.post(
+        "http://localhost/Customer_M_system/backend/api/indexLogin.php?action=updateUser",
+        formData
+      );
+  
+      alert(res.data.message);
+  
+      if (!res.data.error) {
+        setEditingCustomer(null);
+        fetchUsers();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update customer.");
+    }
+  };
+  
+  
+
+  if (loading) return <p className="text-center text-gray-600">Loading customers...</p>;
+
+  return (
+    <div className="flex flex-col w-7/9 h-90vh overflow-hidden">
+      {/* Image and Add Customer Button */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
+        <img className='rounded-full w-32 h-32 mb-4 sm:mb-0 sm:mr-4' src="/src/assets/solo.jpg" alt="Profile" />
+        <button onClick={() => setOpenModal(!openModal)} className="w-1/2 btn-primary sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-md shadow-md hover:bg-blue-700 transition duration-200">
+          {openModal ? "Close Form" : "Add New Customer"}
+        </button>
+      </div>
+
+      {/* Search Bar (only on mobile) */}
+      <div className="sm:hidden mb-4">
+        <input
+          type="text"
+          placeholder="Search..."
+          className="ml-10 px-4 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 "
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      {openModal && (
+        <form onSubmit={handleFormSubmit} className="bg-white p-4 rounded-lg shadow-md mb-4 w-full">
+          <h3 className="text-lg font-semibold mb-2">New Customer</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <input type="text" placeholder="Name" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" onChange={e => setFormData({ ...formData, uname: e.target.value })} />
+            <input type="text" placeholder="Username" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" onChange={e => setFormData({ ...formData, username: e.target.value })} />
+            <input type="text" placeholder="Contact" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" onChange={e => setFormData({ ...formData, contacts: e.target.value })} />
+            <input type="password" placeholder="Password" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" onChange={e => setFormData({ ...formData, upassword: e.target.value })} />
+            <input type="datetime-local" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" onChange={e => setFormData({ ...formData, ucreated: e.target.value })} />
+            
+          </div>
+          
+          <button type="submit" className="w-1/5 mt-3 btn-secondary">Submit</button>
+        </form>
+      )}
+      {editingCustomer && (
+  <div className="flex flex-col justify-center p-4 mb-4 bg-white rounded-lg shadow-md w-full">
+  <h2 className="text-xl font-bold mb-3">Update Customer</h2>
+  <form onSubmit={handleUpdate} className="w-full flex flex-col">
+    {/* Input Fields Container */}
+    <div className="space-y-4 sm:grid sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+      {/* Full Name */}
+      <div className="flex flex-col">
+        <label htmlFor="uname" className="mb-1 text-sm font-medium text-gray-700">
+          Full Name
+        </label>
+        <input 
+          id="uname"
+          type="text" 
+          value={editingCustomer.uname}
+          onChange={(e) => setEditingCustomer({ ...editingCustomer, uname: e.target.value })}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="Enter full name"
+          required
+        />
+      </div>
+
+      {/* Username */}
+      <div className="flex flex-col">
+        <label htmlFor="username" className="mb-1 text-sm font-medium text-gray-700">
+          Username
+        </label>
+        <input 
+          id="username"
+          type="text" 
+          value={editingCustomer.username}
+          onChange={(e) => setEditingCustomer({ ...editingCustomer, username: e.target.value })}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="Enter username"
+          required
+        />
+      </div>
+
+      {/* Email */}
+      <div className="flex flex-col">
+        <label htmlFor="email" className="mb-1 text-sm font-medium text-gray-700">
+          Email
+        </label>
+        <input 
+          id="email"
+          type="text" 
+          value={editingCustomer.email}
+          onChange={(e) => setEditingCustomer({ ...editingCustomer, email: e.target.value })}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="Enter email"
+          required
+        />
+      </div>
+
+      {/* Contact */}
+      <div className="flex flex-col">
+        <label htmlFor="contact" className="mb-1 text-sm font-medium text-gray-700">
+          Contact
+        </label>
+        <input
+          id="contact"
+          type="text"
+          value={editingCustomer.contacts}
+          onChange={(e) => setEditingCustomer({ ...editingCustomer, contacts: e.target.value })}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="Enter contact number"
+        />
+      </div>
+
+      <div className="flex flex-col">
+        <label htmlFor="password" className="mb-1 text-sm font-medium text-gray-700">
+          Password
+        </label>
+        <input
+          id="password"
+          type="password"
+          value={editingCustomer.password}
+          onChange={(e) => setEditingCustomer({ ...editingCustomer, password: e.target.value })}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="New password (optional)"
+        />
+      </div>
+
+      {/* Status Dropdown */}
+      <div className="flex flex-col">
+        <label htmlFor="status" className="mb-1 text-sm font-medium text-gray-700">
+          Status
+        </label>
+        <select
+          id="status"
+          value={editingCustomer.status}
+          onChange={(e) =>
+            setEditingCustomer({ ...editingCustomer, status: e.target.value })
+          }
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="">Select status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    {/* Buttons Container */}
+    <div className="flex justify-end gap-3 mt-4">
+
+      <button 
+        type="submit" 
+        className="px-6 py-3 btn-secondary rounded-lg"
+      >
+        Save
+      </button>
+
+      <button 
+        type="button" 
+        onClick={() => setEditingCustomer(null)} 
+        className="px-6 py-3 btn-secondary rounded-lg"
+      >
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>
+      )}
+
+      {/* Customer Table */}
+      <div className="overflow-x-auto bg-gray-300 rounded-lg shadow-md w-full max-h-[600px] mt-10">
+  <h2 className="text-xl font-bold p-4">Customer List</h2>
+  <div className="overflow-y-auto max-h-[400px]">
+    <table className="min-w-full text-sm border-collapse border border-gray-300">
+      <thead className="bg-[#0E1336] text-white sticky top-0">
+        <tr>
+          <th className="p-2 whitespace-nowrap">ID</th>
+          <th className="p-2 whitespace-nowrap">Name</th>
+          <th className="p-2 whitespace-nowrap">Username</th>
+          <th className="p-2 whitespace-nowrap">Email</th>
+          <th className="p-2 whitespace-nowrap">Contact</th>
+          <th className="p-2 whitespace-nowrap">Status</th>
+          <th className="p-2 whitespace-nowrap">Actions</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-200">
+        {filteredUsers.length > 0 ? (
+          filteredUsers.map((user, index) => (
+            <tr key={index} className="bg-white even:bg-gray-50 text-center">
+              <td className="p-2 whitespace-nowrap">{user.user_id}</td>
+              <td className="p-2 whitespace-nowrap">{user.uname}</td>
+              <td className="p-2 whitespace-nowrap">{user.username}</td>
+              <td className="p-2 whitespace-nowrap">{user.email}</td>
+              <td className="p-2 whitespace-nowrap">{user.contacts}</td>
+              <td className="p-2 whitespace-nowrap">{user.ustatus}</td>
+              <td className="p-2 space-x-2">
+                <div className='flex justify-center items-center gap-2'>  
+                   <button
+                  onClick={() => handleView(user.user_id)}
+                  className="w-1/5 py-3 btn-secondary rounded-lg"
+                >
+                  View
+                </button>
+                <button
+                  onClick={() => setEditingCustomer(user)}
+                  className="text-center btn-alternative rounded-lg"
+                >
+                  <SquarePen size={25} />
+                </button>
+                <button
+                  onClick={() => del(user.user_id)}
+                  className="text-center btn-alternative1 rounded-lg"
+                >
+                  <Trash2 size={25}/>
+                </button></div>
+             
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan="7" className="text-center py-4">
+              No users found!
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</div>
+    </div>
+  );
+};
+
+export default Customers;

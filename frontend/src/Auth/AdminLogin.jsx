@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
 const apiURL = 'http://localhost/Customer_M_system/backend/api/indexLogin.php?action=';
@@ -21,12 +21,7 @@ const AdminLogin = () => {
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true); 
-
-    setTimeout(() => { 
-      setLoading(false); 
-    }
-    , loadingDuration);
+    setLoading(true); // Start loading
     try {
         const form = new FormData();
         form.append('email', formData.email);
@@ -37,8 +32,7 @@ const AdminLogin = () => {
         console.log(response.data); 
        
         if (response.data.error === false) {
-            alert('Login successful!');
-            setLoading(false);
+           // alert('Login successful!');
             navigate('/admin-dashboard'); 
         } else {
             alert(response.data.message); 
@@ -51,8 +45,8 @@ const AdminLogin = () => {
 
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-600 to-purple-600 p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#000046] to-[#1CB5E0] p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-10 min-h-100">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-extrabold text-gray-800 mb-2">
             Welcome Back
@@ -89,13 +83,19 @@ const AdminLogin = () => {
               {showPassword ? 'Hide' : 'Show'}
             </button>
           </div>
-
+          <div className='flex space-x-2 mt-4 pt-2 border-t border-gray-200 items-center justify-center'>
           <button
             type="submit"
-            className="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-semibold"
-          >
-            Login
+            className="w-1/2 text-center btn-secondary text-sm">Login
           </button>
+            <Link to="/customer-access"
+            className="w-1/2 text-center btn-primary text-sm "
+          >
+            Register
+          </Link>
+          </div>
+          
+
         </form>
       </div>
     </div>

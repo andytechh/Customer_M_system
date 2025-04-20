@@ -8,25 +8,37 @@ header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-W
 header('Access-Control-Allow-Credentials: true');
 
 $res = ['error' => false];
-$action = isset($_GET['action']) ? $_GET['action'] : '';
+$action = $_GET['action'] ?? '';
 
 switch ($action) {
+
+    case 'view':
+        view();
+        break;
+    case 'viewUser':
+        viewUser();
+        break;
     case 'login':
         login();
+        break;
+    case 'updateUser':
+        updateUser();
         break;
     case 'register':
         register();
         break;
+    case 'admin-login':
+        admin_login();
+        break;
     case 'deleteUser':
-            if (isset($_POST['userId'])) {
-                deleteUserAndReorder($_POST['userId']);
-            } else {
-                $res['error'] = true;
-                $res['message'] = 'User ID not provided.';
-                echo json_encode($res);
-            }
-            break;
-        
+        if (isset($_POST['userId'])) {
+            deleteUserAndReorder($_POST['userId']);
+        } else {
+            $res['error'] = true;
+            $res['message'] = 'User ID not provided.';  
+            echo json_encode($res);
+        }
+        break;
     default:
         $res['error'] = true;
         $res['message'] = 'Invalid action.';
@@ -34,6 +46,153 @@ switch ($action) {
         break;
 }
 
+function updateUser() {
+    global $connect, $res;
+
+    $userId = $_POST['user_id'] ?? null;
+    if (!$userId) {
+        echo json_encode(['error' => true, 'message' => 'User ID not provided.']);
+        return;
+    }
+
+    // Map of input keys to DB columns
+    $fieldsMap = [
+        'uname' => 'uname',
+        'username' => 'username',
+        'email' => 'email',
+        'contacts' => 'contacts',
+        'password' => 'password_hash',
+        'status' => 'ustatus',
+    ];
+
+    $fields = [];
+    $values = [];
+
+    foreach ($fieldsMap as $input => $column) {
+        if (!empty($_POST[$input])) {
+            $value = $_POST[$input];
+
+            // If password, hash it
+            if ($input === 'password') {
+                $value = password_hash($value, PASSWORD_DEFAULT);
+            }
+
+            $fields[] = "$column = ?";
+            $values[] = $value;
+        }
+    }
+
+    if (empty($fields)) {
+        echo json_encode(['error' => true, 'message' => 'No fields provided to update.']);
+        return;
+    }
+
+    $values[] = $userId; // Add user_id for WHERE
+    $types = str_repeat('s', count($values) - 1) . 'i';
+
+    $sql = "UPDATE users SET " . implode(', ', $fields) . " WHERE user_id = ?";
+    $stmt = $connect->prepare($sql);
+
+    if (!$stmt) {
+        echo json_encode(['error' => true, 'message' => 'Failed to prepare statement.']);
+        return;
+    }
+
+    $stmt->bind_param($types, ...$values);
+
+    if ($stmt->execute()) {
+        if ($stmt->affected_rows > 0) {
+            echo json_encode(['error' => false, 'message' => 'User updated successfully.']);
+        } else {
+            echo json_encode(['error' => true, 'message' => 'No changes made or user not found.']);
+        }
+    } else {
+        echo json_encode(['error' => true, 'message' => 'Failed to update user.']);
+    }
+
+    $stmt->close();
+}
+ 
+function viewUser () {
+    global $connect, $res;
+
+    $user_Id = $_GET['user_id'] ?? null; // Get user ID from query parameters
+    if (!$user_Id) {
+        $res['error'] = true;
+        $res['message'] = 'User  ID not provided.';
+        echo json_encode($res);
+        return;
+    }
+
+    $stmt = $connect->prepare("SELECT * FROM users WHERE user_id = ?");
+    $stmt->bind_param("i", $user_Id); // Bind the user ID parameter
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $stmt->close();
+    
+    if ($user = $result->fetch_assoc()) {
+        echo json_encode(['error' => false, 'user' => $user]); 
+    } else {
+        echo json_encode(['error' => true, 'message' => 'User  not found']);
+    }
+}
+function view() {
+    global $connect;
+
+    $stmt = $connect->prepare("SELECT * FROM users WHERE roles = 'customer'");
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $stmt->close();
+    
+    $data = [];
+    
+    // Fetch all users
+    while ($user = $result->fetch_assoc()) {
+        $data[] = $user;  
+    }
+
+   
+    if (count($data) > 0) {
+        echo json_encode(['error' => false, 'users' => $data]);
+    } else {
+        echo json_encode(['error' => true, 'message' => 'No customers found']);
+    }
+}
+
+function admin_login() {
+    global $connect, $res;
+
+    $email = $_POST['email'] ?? '';
+    $password = $_POST['password'] ?? '';
+
+    if (empty($email) || empty($password)) {
+        $res['error'] = true;
+        $res['message'] = 'Email and password are required.';
+        echo json_encode($res);
+        return;
+    }
+
+    $stmt = $connect->prepare("SELECT * FROM admins WHERE email = ? AND roles = 'admin'");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($user = $result->fetch_assoc()) {
+        if ($user && $password == $user['password_hash']) {
+            $res['error'] = false;
+            $res['message'] = 'Login successful.';
+            $res['user'] = $user;
+        } else {
+            $res['error'] = true;
+            $res['message'] = 'Invalid email or password.';
+        }
+    } else {
+        $res['error'] = true;
+        $res['message'] = 'Email not found or not an admin.';
+    }
+
+    echo json_encode($res);
+}
 function login() {
     global $connect, $res;
 
@@ -44,7 +203,7 @@ function login() {
         $res['error'] = true;
         $res['message'] = 'Email and password are required.';
         echo json_encode($res);
-        exit;
+        return;
     }
 
     $stmt = $connect->prepare("SELECT * FROM users WHERE email = ?");
@@ -63,53 +222,46 @@ function login() {
     } else {
         $res['error'] = true;
         $res['message'] = 'Email not found.';
-     
-
-
-    }
-
-    echo json_encode($res); // <- always send a response
-}
-
-function deleteUserAndReorder($userId) {
-    global $connect, $res;
-
-    // Step 1: Delete the user from the database
-    $stmt = $connect->prepare("DELETE FROM users WHERE id = ?");
-    $stmt->bind_param("i", $userId);
-    $stmt->execute();
-
-    if ($stmt->affected_rows > 0) {
-        // Step 2: Reorder the IDs
-        $stmt = $connect->prepare("SET @count = 0;");
-        $stmt->execute();
-
-        $stmt = $connect->prepare("UPDATE users SET id = @count := @count + 1 ORDER BY id;");
-        $stmt->execute();
-
-        // Step 3: Reset AUTO_INCREMENT
-        $stmt = $connect->prepare("ALTER TABLE users AUTO_INCREMENT = 1;");
-        $stmt->execute();
-
-        $res['message'] = 'User deleted and IDs reordered successfully.';
-    } else {
-        $res['error'] = true;
-        $res['message'] = 'Failed to delete the user.';
     }
 
     echo json_encode($res);
 }
-function getNextAvailableId($connect) {
-    $query = "SELECT MIN(user_id + 1) AS next_id FROM users WHERE user_id + 1 NOT IN (SELECT user_id FROM users)";
-    $result = mysqli_query($connect, $query);
 
-    if ($result && mysqli_num_rows($result) > 0) {
-        $row = mysqli_fetch_assoc($result);
-        return $row['next_id'];
+function deleteUserAndReorder($userId) {
+    global $connect, $res;
+    
+    $stmt1 = $connect->prepare("DELETE FROM customers WHERE customer_id = ? OR user_id = ?");
+    $stmt1->bind_param("i", $userId);
+    $stmt1->execute();
+
+    $stmt2 = $connect->prepare("DELETE FROM users WHERE user_id = ?");
+    $stmt2->bind_param("i", $userId);
+    $stmt2->execute();
+
+    if ($stmt2->affected_rows > 0) {
+        $res['message'] = 'User and customer deleted successfully.';
     } else {
-        return null; // No gaps, so the next available ID will be the highest current ID + 1
+        $res['error'] = true;
+        $res['message'] = 'User not found or already deleted.';
     }
+
+    echo json_encode($res);
 }
+
+
+function getNextAvailableId($connect) {
+    $query = "SELECT MIN(t1.user_id + 1) AS next_id
+              FROM users t1
+              WHERE NOT EXISTS (
+                  SELECT 1 FROM users t2 WHERE t2.user_id = t1.user_id + 1
+              )";
+    $result = mysqli_query($connect, $query);
+    if ($row = mysqli_fetch_assoc($result)) {
+        return $row['next_id'];
+    }
+    return null;
+}
+
 function getNextAutoIncrementId($connect) {
     $query = "SHOW TABLE STATUS LIKE 'users'";
     $result = mysqli_query($connect, $query);
@@ -122,39 +274,50 @@ function register() {
 
     $data = json_decode(file_get_contents('php://input'), true);
 
-    if ($data) {
-        $uname = $data['uname'];
-        $username = $data['username'];
-        $uemail = $data['uemail'];
-        $upassword = $data['upassword'];
-        $ucreated_at = $data['ucreated'];
+    if (!$data) {
+        echo json_encode(['type' => 'error', 'message' => 'Invalid JSON']);
+        return;
+    }
 
-        $nextId = getNextAvailableId($connect);
-        if ($nextId === null) {
-        
-            $nextId = getNextAutoIncrementId($connect);
-        }
+    $uname = $data['uname'];
+    $username = $data['username'];
+    $uemail = $data['uemail'];
+    $upassword = $data['upassword'];
+    $ucreated_at = $data['ucreated'];
 
-        if ($username && $uemail && $upassword) {
-            // Insert the new user with the smallest available ID
-            $stmt = $connect->prepare("INSERT INTO users (user_id, uname, username, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)");
-            if ($stmt === false) {
-                echo json_encode(['type' => 'error', 'message' => 'Failed to prepare statement']);
-                exit;
-            }
-            $stmt->bind_param("isssss", $nextId, $uname, $username, $uemail, $upassword, $ucreated_at);
+    if (!$username || !$uemail || !$upassword) {
+        echo json_encode(['type' => 'error', 'message' => 'Missing fields']);
+        return;
+    }
 
-            if ($stmt->execute()) {
-                echo json_encode(['type' => 'success', 'message' => 'User inserted successfully']);
-            } else {
-                echo json_encode(['type' => 'error', 'message' => 'Failed to insert user']);
-            }
+    $hashedPassword = password_hash($upassword, PASSWORD_DEFAULT);
+
+    $nextId = getNextAvailableId($connect);
+    if ($nextId === null) {
+        $nextId = getNextAutoIncrementId($connect);
+    }
+
+    // Insert user
+    $stmt = $connect->prepare("INSERT INTO users (user_id, uname, username, email, password_hash, created_at, roles) VALUES (?, ?, ?, ?, ?, ?, 'customer')");
+    if (!$stmt) {
+        echo json_encode(['type' => 'error', 'message' => 'Failed to prepare statement']);
+        return;
+    }
+
+    $stmt->bind_param("isssss", $nextId, $uname, $username, $uemail, $hashedPassword, $ucreated_at);
+    if ($stmt->execute()) {
+        $user_id = $nextId;
+
+        // Insert into customers
+        $stmt2 = $connect->prepare("INSERT INTO customers (user_id) VALUES (?)");
+        $stmt2->bind_param("i", $user_id);
+        if ($stmt2->execute()) {
+            echo json_encode(['type' => 'success', 'message' => 'User and customer registered']);
         } else {
-            echo json_encode(['type' => 'error', 'message' => 'Invalid input']);
+            echo json_encode(['type' => 'error', 'message' => 'Customer insert failed']);
         }
     } else {
-        echo json_encode(['type' => 'error', 'message' => 'Invalid JSON']);
+        echo json_encode(['type' => 'error', 'message' => 'User insert failed']);
     }
 }
-
 ?>

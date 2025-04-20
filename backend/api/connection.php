@@ -3,7 +3,7 @@
 $host = 'localhost';
 $username = 'root'; 
 $password = '';
-$dbname = 'cms_database'; // Replace with your database name
+$dbname = 'cms_database'; 
 
 $connect = mysqli_connect($host, $username, $password, $dbname);
 if (!$connect) {

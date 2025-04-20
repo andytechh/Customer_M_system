@@ -86,7 +86,7 @@ const LoginReg = () => {
 
   return (
    
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-600 to-purple-600 p-4">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#000046] to-[#1CB5E0]  p-4">
     <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8">
       <div className="mb-6 text-center">
         <h1 className="text-3xl font-extrabold text-gray-800 mb-2">
@@ -102,8 +102,8 @@ const LoginReg = () => {
           onClick={() => openModal(false)}
           className={`px-4 py-2 rounded-full font-medium ${
             !isRegister
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'bg-gray-100 text-gray-800'
+              ? 'btn-secondary text-[#1CB5E0]  shadow-md'
+              : 'btn-primary text-white-800'
           }`}
         >
           Login
@@ -112,8 +112,8 @@ const LoginReg = () => {
           onClick={() => openModal(true)}
           className={`px-4 py-2 rounded-full font-medium ${
             isRegister
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'bg-gray-100 text-gray-800'
+              ? 'w-1/4 btn-secondary text-[#1CB5E0] shadow-md'
+              : 'btn-primary text-white-800'
           }`}
         >
           Register
