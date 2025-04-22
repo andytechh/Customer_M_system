@@ -30,15 +30,16 @@ switch ($action) {
     case 'admin-login':
         admin_login();
         break;
-    case 'deleteUser':
-        if (isset($_POST['userId'])) {
-            deleteUserAndReorder($_POST['userId']);
-        } else {
-            $res['error'] = true;
-            $res['message'] = 'User ID not provided.';  
-            echo json_encode($res);
-        }
-        break;
+        case 'deleteUser':
+            error_log("Received POST data: " . print_r($_POST, true));
+            if (isset($_POST['userId'])) {
+                deleteUserAndReorder($_POST['userId']);
+            } else {
+                $res['error'] = true;
+                $res['message'] = 'User ID not provided.';
+                echo json_encode($res);
+            }
+            break;
     default:
         $res['error'] = true;
         $res['message'] = 'Invalid action.';
@@ -72,7 +73,6 @@ function updateUser() {
         if (!empty($_POST[$input])) {
             $value = $_POST[$input];
 
-            // If password, hash it
             if ($input === 'password') {
                 $value = password_hash($value, PASSWORD_DEFAULT);
             }
@@ -87,7 +87,7 @@ function updateUser() {
         return;
     }
 
-    $values[] = $userId; // Add user_id for WHERE
+    $values[] = $userId; 
     $types = str_repeat('s', count($values) - 1) . 'i';
 
     $sql = "UPDATE users SET " . implode(', ', $fields) . " WHERE user_id = ?";
@@ -116,7 +116,7 @@ function updateUser() {
 function viewUser () {
     global $connect, $res;
 
-    $user_Id = $_GET['user_id'] ?? null; // Get user ID from query parameters
+    $user_Id = $_GET['user_id'] ?? null; 
     if (!$user_Id) {
         $res['error'] = true;
         $res['message'] = 'User  ID not provided.';
@@ -125,7 +125,7 @@ function viewUser () {
     }
 
     $stmt = $connect->prepare("SELECT * FROM users WHERE user_id = ?");
-    $stmt->bind_param("i", $user_Id); // Bind the user ID parameter
+    $stmt->bind_param("i", $user_Id); 
     $stmt->execute();
     $result = $stmt->get_result();
     $stmt->close();
@@ -145,8 +145,7 @@ function view() {
     $stmt->close();
     
     $data = [];
-    
-    // Fetch all users
+   
     while ($user = $result->fetch_assoc()) {
         $data[] = $user;  
     }
@@ -229,9 +228,9 @@ function login() {
 
 function deleteUserAndReorder($userId) {
     global $connect, $res;
-    
+
     $stmt1 = $connect->prepare("DELETE FROM customers WHERE customer_id = ? OR user_id = ?");
-    $stmt1->bind_param("i", $userId);
+    $stmt1->bind_param("ii", $userId, $userId); 
     $stmt1->execute();
 
     $stmt2 = $connect->prepare("DELETE FROM users WHERE user_id = ?");
@@ -247,7 +246,6 @@ function deleteUserAndReorder($userId) {
 
     echo json_encode($res);
 }
-
 
 function getNextAvailableId($connect) {
     $query = "SELECT MIN(t1.user_id + 1) AS next_id
@@ -279,14 +277,15 @@ function register() {
         return;
     }
 
-    $uname = $data['uname'];
-    $username = $data['username'];
-    $uemail = $data['uemail'];
-    $upassword = $data['upassword'];
-    $ucreated_at = $data['ucreated'];
+    $uname = $data['uname'] ?? null;
+    $username = $data['username'] ?? null;
+    $uemail = $data['uemail'] ?? null;
+    $uaddress = $data['uaddress'] ?? null; 
+    $upassword = $data['upassword'] ?? null;
+    $ucreated_at = $data['ucreated'] ?? date('Y-m-d H:i:s'); 
 
     if (!$username || !$uemail || !$upassword) {
-        echo json_encode(['type' => 'error', 'message' => 'Missing fields']);
+        echo json_encode(['type' => 'error', 'message' => 'Missing required fields']);
         return;
     }
 
@@ -296,21 +295,28 @@ function register() {
     if ($nextId === null) {
         $nextId = getNextAutoIncrementId($connect);
     }
-
-    // Insert user
-    $stmt = $connect->prepare("INSERT INTO users (user_id, uname, username, email, password_hash, created_at, roles) VALUES (?, ?, ?, ?, ?, ?, 'customer')");
+    $stmt = $connect->prepare("
+        INSERT INTO users (user_id, uname, username, email, uaddress, password_hash, created_at, roles)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'customer')
+    ");
     if (!$stmt) {
         echo json_encode(['type' => 'error', 'message' => 'Failed to prepare statement']);
         return;
     }
+    $stmt->bind_param("issssss", $nextId, $uname, $username, $uemail, $uaddress, $hashedPassword, $ucreated_at);
 
-    $stmt->bind_param("isssss", $nextId, $uname, $username, $uemail, $hashedPassword, $ucreated_at);
     if ($stmt->execute()) {
         $user_id = $nextId;
 
-        // Insert into customers
-        $stmt2 = $connect->prepare("INSERT INTO customers (user_id) VALUES (?)");
-        $stmt2->bind_param("i", $user_id);
+
+        $stmt2 = $connect->prepare("INSERT INTO customers (user_id, uname, uaddress) VALUES (?, ?, ?)");
+        if (!$stmt2) {
+            echo json_encode(['type' => 'error', 'message' => 'Failed to prepare customer statement']);
+            return;
+        }
+
+        $stmt2->bind_param("iss", $user_id, $uname, $uaddress);
+
         if ($stmt2->execute()) {
             echo json_encode(['type' => 'success', 'message' => 'User and customer registered']);
         } else {
