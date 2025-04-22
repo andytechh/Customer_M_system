@@ -56,7 +56,6 @@ function updateUser() {
         return;
     }
 
-    // Map of input keys to DB columns
     $fieldsMap = [
         'uname' => 'uname',
         'username' => 'username',
@@ -149,8 +148,6 @@ function view() {
     while ($user = $result->fetch_assoc()) {
         $data[] = $user;  
     }
-
-   
     if (count($data) > 0) {
         echo json_encode(['error' => false, 'users' => $data]);
     } else {
