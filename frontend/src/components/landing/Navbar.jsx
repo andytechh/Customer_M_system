@@ -23,7 +23,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <a href="/" className="flex items-center">
-              <span className="text-2xl font-bold text-gradient">CatchCRM</span>
+              <span className="text-2xl font-bold text-gradient">Techzio</span>
             </a>
           </div>
 
@@ -39,7 +39,7 @@ const Navbar = () => {
                 Contact
               </Link>
               <Link  className="btn-secondary ml-4" to="/admin-login"  onClick={handleLogin}>
-                Log in
+               Admin Log in
               </Link>
             
               <Link to="/customer-access" className="btn-primary">

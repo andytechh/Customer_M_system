@@ -21,7 +21,7 @@ import SupportTickets from './components/Customer/SupportTickets'
 import Customer_Dashboard from './components/Customer/Customer_Dashboard'
 import ChatSupport from './components/Customer/ChatSupport'
 import CTA from './components/landing/CTA'
-
+import Products from './components/Admin/Products'
 // import Login from './Auth/Login'
 // import Register from './Auth/Register'
 
@@ -46,6 +46,8 @@ const App = () => {
   <Route path="/admin-dashboard" element={<Dashboard />} />
   <Route path="/users/:user_Id" element={<Users/>}/>
   <Route path="/customers" element={<Customers />} />
+  <Route path="/products" element={<Products />} />
+  <Route path="/orders" element={<Orders />} /> 
   <Route path="/reports" element={<Reports />} />
   <Route path="/Settings" element={<Settings />} />
   </Route>

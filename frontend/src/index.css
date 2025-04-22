@@ -200,6 +200,10 @@
   .txt-secondary {
     @apply text-[#000046];
   }
+  
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#000046] to-[#1CB5E0];
+  }
 }
 
 @layer utilities {

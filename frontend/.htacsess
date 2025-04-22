@@ -1,0 +1,6 @@
+Alias /uploads /path/to/project/backend/uploads
+
+<FilesMatch "\.(jpg|jpeg|png|gif)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>

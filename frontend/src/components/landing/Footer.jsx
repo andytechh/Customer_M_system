@@ -8,7 +8,7 @@ const Footer = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-2xl font-bold text-white mb-4">CatchCRM</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">Techzio</h3>
             <p className="mb-4">
               The smarter way to manage your customer relationships and drive growth for your business.
             </p>
@@ -81,7 +81,7 @@ const Footer = () => {
         </div>
         
         <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p>© 2025 CatchCRM. All rights reserved.</p>
+          <p>© 2025 Techzio. All rights reserved.</p>
           <div className="mt-4 md:mt-0">
             <a href="#" className="mr-6 hover:text-white transition-colors">Privacy Policy</a>
             <a href="#" className="mr-6 hover:text-white transition-colors">Terms of Service</a>

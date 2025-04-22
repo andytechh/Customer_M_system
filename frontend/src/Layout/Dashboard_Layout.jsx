@@ -1,7 +1,7 @@
 import React from 'react'
 import {
   Search, LayoutGrid, Users, ShoppingBag, Bot,
-  CircleHelp, MessageCircleWarning, Settings, Menu, Bell, UserPen
+  CircleHelp, MessageCircleWarning, Settings, Menu, Bell, UserPen, ShoppingCart 
 } from 'lucide-react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 
@@ -33,8 +33,8 @@ const DashboardLayout = () => {
           <button onClick={toggleSidebar} className="md:hidden">
             <Menu className="text-gray-700" />
           </button>
-          <h1 className="text-1xl font-semibold text-gray-800 flex-1 text-center md:text-left">
-            Customer Management
+          <h1 className="text-2xl flex-1 font-bold text-gradient text-center md:text-left">
+          Techzio Dashboard
           </h1>
           <div className='relative w-full max-w-sm hidden md:block'>
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black" size={15} />
@@ -62,6 +62,7 @@ const DashboardLayout = () => {
               <NavItem to="/dashboard" icon={<LayoutGrid />} label="Dashboard" path={location.pathname} />
               <NavItem to="/customers" icon={<Users />} label="Customers" path={location.pathname} />
               <NavItem to="/orders" icon={<ShoppingBag />} label="Orders" path={location.pathname} />
+              <NavItem to="/products" icon={<ShoppingCart />} label="Products" path={location.pathname} />
               <NavItem to="/reports" icon={<Bot />} label="AI Recommendations" path={location.pathname} />
               <NavItem to="/support" icon={<CircleHelp />} label="Chat Support" path={location.pathname} />
               <NavItem to="/report-issues" icon={<MessageCircleWarning />} label="Reports" path={location.pathname} />
@@ -88,9 +89,9 @@ const DashboardLayout = () => {
 const NavItem = ({ to, icon, label, path }) => {
   const isActive = path === to
   return (
-    <li className={`flex items-center rounded-md p-2 hover:bg-gray-700 ${isActive ? 'bg-gray-700' : ''}`}>
-      {React.cloneElement(icon, { className: 'text-white', size: 20 })}
-      <Link to={to} className="text-gray-300 hover:text-indigo-500 ml-3 font-semibold">{label}</Link>
+    <li className={`flex items-center rounded-md p-2 hover:bg-gray-700 ${isActive ? 'bg-gray-700' : ''} `}>
+      {React.cloneElement(icon, { className: 'text-[#1CB5E0]', size: 20 })}
+      <Link to={to} className="text-gray-300 hover:text-[#1CB5E0] ml-3 font-semibold">{label}</Link>
     </li>
   )
 }

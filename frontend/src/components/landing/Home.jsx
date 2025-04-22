@@ -41,7 +41,7 @@ const Home = () => {
             <div className="bg-white p-4 rounded-xl shadow-2xl animate-float ">
               <img 
                 src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=900&q=80" 
-                alt="CRM Dashboard" 
+                alt="Techzio Dashboard" 
                 className="rounded-lg"
               />
             </div>
@@ -56,7 +56,7 @@ const Home = () => {
                 </div>
                 <div className="ml-3">
                   <p className="text-sm font-medium">+2,500 companies</p>
-                  <p className="text-xs text-gray-500">trust CatchCRM</p>
+                  <p className="text-xs text-gray-500">trust Techzio</p>
                 </div>
               </div>
             </div>

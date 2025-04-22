@@ -10,4 +10,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      '/uploads': 'http://localhost/Customer_M_system/backend',
+    },
+  },
 })

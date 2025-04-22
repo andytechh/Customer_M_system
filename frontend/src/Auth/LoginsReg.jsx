@@ -102,8 +102,8 @@ const LoginReg = () => {
           onClick={() => openModal(false)}
           className={`px-4 py-2 rounded-full font-medium ${
             !isRegister
-              ? 'btn-secondary text-[#1CB5E0]  shadow-md'
-              : 'btn-primary text-white-800'
+              ? ' w-1/4 btn-primary text-white  shadow-md'
+              : 'btn-secondary text-white-800'
           }`}
         >
           Login
@@ -112,8 +112,8 @@ const LoginReg = () => {
           onClick={() => openModal(true)}
           className={`px-4 py-2 rounded-full font-medium ${
             isRegister
-              ? 'w-1/4 btn-secondary text-[#1CB5E0] shadow-md'
-              : 'btn-primary text-white-800'
+              ? 'w-ful btn-primary text-white shadow-lg'
+              : 'btn-secondary text-white-800'
           }`}
         >
           Register
@@ -136,6 +136,7 @@ const LoginReg = () => {
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
+
               <input
                 type="text"
                 name="username"
@@ -143,8 +144,19 @@ const LoginReg = () => {
                 value={formData.username || ''}
                 onChange={handleInsertChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className
+                ="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
+
+            <input
+            type="text"
+            name="uaddress"
+            placeholder="Enter your address"
+            value={formData.uaddress || ''}
+            onChange={handleInsertChange}
+            required
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
             </>
           )}
 
@@ -157,7 +169,7 @@ const LoginReg = () => {
             required
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
-
+        
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
@@ -184,14 +196,14 @@ const LoginReg = () => {
           <div className="flex gap-4">
             <button
               type="submit"
-              className="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-semibold"
+              className="w-full py-3 rounded-lg btn-secondary font-semibold"
             >
               {isRegister ? 'Register' : 'Login'}
             </button>
             <button
               type="button"
               onClick={() => setInsertModal(false)}
-              className="w-full py-3 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition font-semibold"
+              className="w-full py-3 rounded-lg btn-secondary font-semibold"
             >
               Cancel
             </button>
