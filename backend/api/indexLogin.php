@@ -111,6 +111,7 @@ function updateUser() {
 
     $stmt->close();
 }
+//got it
 function testUser(){
     global $connect, $res;
     
@@ -122,6 +123,7 @@ function testUser(){
         echo json_encode($res);
         return;
     }
+    
     $user = json_decode(file_get_contents('php://input'));
     $sql = $connect->prepare("SELECT * FROM users WHERE user_id = ?");
     $sql->bind_param("i", $user_Id); 
