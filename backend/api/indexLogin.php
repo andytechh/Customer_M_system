@@ -16,7 +16,7 @@ switch ($action) {
         view();
         break;
     case 'viewUser':
-        viewUser();
+        testUser();
         break;
     case 'login':
         login();
@@ -111,30 +111,56 @@ function updateUser() {
 
     $stmt->close();
 }
- 
-function viewUser () {
+function testUser(){
     global $connect, $res;
-
+    
     $user_Id = $_GET['user_id'] ?? null; 
+
     if (!$user_Id) {
         $res['error'] = true;
         $res['message'] = 'User  ID not provided.';
         echo json_encode($res);
         return;
     }
-
-    $stmt = $connect->prepare("SELECT * FROM users WHERE user_id = ?");
-    $stmt->bind_param("i", $user_Id); 
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $stmt->close();
+    $user = json_decode(file_get_contents('php://input'));
+    $sql = $connect->prepare("SELECT * FROM users WHERE user_id = ?");
+    $sql->bind_param("i", $user_Id); 
+    $sql->execute();
+    $result = $sql->get_result();
+    $sql->close();
     
     if ($user = $result->fetch_assoc()) {
         echo json_encode(['error' => false, 'user' => $user]); 
     } else {
         echo json_encode(['error' => true, 'message' => 'User  not found']);
     }
+    
+ 
 }
+// function viewUser () {
+//     global $connect, $res;
+
+//     $user_Id = $_GET['user_id'] ?? null; 
+   
+//     if (!$user_Id) {
+//         $res['error'] = true;
+//         $res['message'] = 'User  ID not provided.';
+//         echo json_encode($res);
+//         return;
+//     }
+ 
+//     $stmt = $connect->prepare("SELECT * FROM users WHERE user_id = ?");
+//     $stmt->bind_param("i", $user_Id); 
+//     $stmt->execute();
+//     $result = $stmt->get_result();
+//     $stmt->close();
+    
+//     if ($user = $result->fetch_assoc()) {
+//         echo json_encode(['error' => false, 'user' => $user]); 
+//     } else {
+//         echo json_encode(['error' => true, 'message' => 'User  not found']);
+//     }
+// }
 function view() {
     global $connect;
 
