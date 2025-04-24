@@ -51,7 +51,7 @@ const Customers = () => {
       );
       alert(res.data.message);
       if (!res.data.error) {
-        fetchUsers(); // Refresh the user list
+        fetchUsers(); 
       }
     } catch (err) {
       console.error(err);
@@ -227,7 +227,7 @@ const Customers = () => {
                   <input
                     id="password"
                     type="password"
-                    value={editingCustomer.password || '********'} // Placeholder for current password
+                    value={editingCustomer.password || '********'} 
                     onChange={(e) => setEditingCustomer({ ...editingCustomer, password: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     placeholder="New password (optional)"

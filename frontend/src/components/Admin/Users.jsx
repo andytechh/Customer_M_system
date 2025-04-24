@@ -15,10 +15,12 @@ const Users = () => {
       try {
         const res = await axios.get(
           `http://localhost/Customer_M_system/backend/api/indexLogin.php?action=viewUser&user_id=${user_Id}`
+        
         );
-
+        console.log("user ID:" + user_Id);
         if (!res.data.error) {
           setUser(res.data.user);
+          
         } else {
           console.error(res.data.message);
         }
@@ -31,6 +33,8 @@ const Users = () => {
 
     fetchUser();
   }, [user_Id]);
+
+
   const handleDelete = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
         try {

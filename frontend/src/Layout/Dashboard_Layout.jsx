@@ -76,8 +76,8 @@ const DashboardLayout = () => {
         </aside>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col h-full items-center">
-          <main className="flex flex-col p-6 overflow-auto items-center justify-center w-full">
+        <div className="flex-1 flex flex-col overflow-y-scroll h-full items-center ">
+          <main className="flex flex-col p-6 items-center overflow-hidden justify-center w-full">
             <Outlet />
           </main>
         </div>
