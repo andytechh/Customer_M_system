@@ -66,10 +66,11 @@ const Products = () => {
       formDataToSend.append("pdescription", formData.pdescription);
       formDataToSend.append("price", formData.price);
       formDataToSend.append("stocks", formData.stocks);
-      formDataToSend.append("pimage", formData.pimage); 
+      formDataToSend.append("pimage", formData.pimage);
+      formDataToSend.append("brand", formData.brand);
       formDataToSend.append("pcreated", formData.pcreated);
       
-     // console.log("FormData:", formDataToSend);
+     //console.log("FormData:", formDataToSend);
       for (let [key, value] of formDataToSend.entries()) {
           console.log(`${key}: ${value}`);
       }
@@ -97,6 +98,7 @@ const Products = () => {
       formData.append("pdescription", editingProducts.pdescription);
       formData.append("price", editingProducts.price);
       formData.append("stocks", editingProducts.stocks);
+      formData.append("brand", editingProducts.brand);
       formData.append("pimage", editingProducts.pimage);
       const res = await axios.post("http://localhost/Customer_M_system/backend/api/products.php?action=updateProduct", formData);
 
@@ -195,37 +197,50 @@ const Products = () => {
                   />
                 </div>
                 <div className="flex flex-col">
+                  <label htmlFor="Brands" className="mb-1 text-sm font-medium text-gray-700">Brands</label>
+                  <select
+                    id="brand"
+                    required
+                    value={editingProducts.brand}
+                    onChange={(e) => setEditingProducts({ ...editingProducts, brand: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select Category</option>
+                    <option value="dell"> Dell</option>
+                    <option value="hp">HP</option>
+                    <option value="lenovo">Lenovo</option>
+                    <option value="asus">Asus</option>
+                  </select>
+                </div>
+                
+                <div className="flex flex-col">
                   <label htmlFor="Product image" className="mb-1 text-sm font-medium text-gray-700">Product Image</label>
                   <input
-                  id="pimage"
-                  type="file"
-                  accept="image/*"
-                 // required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        console.log("Selected File:", file); 
+                    id="pimage"
+                    type="file"
+                    accept="image/*"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
                         setEditingProducts({ ...editingProducts, pimage: file });
-                    } else {
-                        console.error("No file selected.");
-                    }
-                }}
+                      }
+                    }}
                   />
+               </div>
                 </div>
-                <div className="flex flex-col items-start">
-                  <label htmlFor="Description" className="mb-1 text-sm font-medium text-gray-700">Product description</label>
-                  <input
-                    id="pdesciption"
-                    type="text"
-                    value={editingProducts.pdescription}
-                    onChange={(e) => setEditingProducts({ ...editingProducts, pdescription: e.target.value })}
-                    className="w-full h-30 px-4 py-3 border flex flex-wrap min-w-4/2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="Description"
-                    required
-                  />
-                </div>
-                </div>
+                <div className="flex flex-col items-start ">
+                <label htmlFor="Description" className="mb-1 text-sm font-medium text-gray-700">Product description</label>
+                <input
+                  id="pdescription" // Fixed typo here
+                  type="text"
+                  value={editingProducts.pdescription}
+                  onChange={(e) => setEditingProducts({ ...editingProducts, pdescription: e.target.value })}
+                  className="w-full h-20 px-4 py-3 border flex flex-wrap min-w-1/2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Description"
+                  required
+                />
+              </div>
               <div className="flex justify-end gap-3 mt-4">
                 <button type="submit" className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200">Save</button>
                 <button type="button" onClick={() => setEditModal(false)} className="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition duration-200">Cancel</button>
@@ -275,6 +290,18 @@ const Products = () => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   onChange={(e) => setFormData({ ...formData, stocks: e.target.value })}
                 />
+
+                  <select
+                    required
+                    onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select Category</option>
+                    <option value="dell"> Dell</option>
+                    <option value="hp">HP</option>
+                    <option value="lenovo">Lenovo</option>
+                    <option value="asus">Asus</option>
+                  </select>
                 <input
                   type="file"
                   accept="image/*"
@@ -283,7 +310,7 @@ const Products = () => {
                  onChange={(e) => {
                     const file = e.target.files[0];
                     if (file) {
-                        console.log("Selected File:", file); 
+                        //console.log("Selected File:", file); 
                         setFormData({ ...formData, pimage: file });
                     } else {
                         console.error("No file selected.");
@@ -311,6 +338,7 @@ const Products = () => {
               <tr className="">
                 <th className="p-4  whitespace-nowrap">Product ID</th>
                 <th className="p-4  whitespace-nowrap">Product Name</th>
+                <th className="p-4  whitespace-nowrap">Product Brand</th>
                 <th className="p-4  whitespace-nowrap">Price</th>
                 <th className="p-4  whitespace-nowrap">Stocks</th>
                 <th className="p-4  whitespace-nowrap">Image</th>
@@ -323,10 +351,15 @@ const Products = () => {
                 <tr key={product.product_id} className="border-b bg-white even:bg-gray-100 text-center">
                   <td className="p-2  whitespace-nowrap">{product.product_id}</td>
                   <td className="p-2  whitespace-nowrap">{product.pname}</td>
+                  <td className="p-2  whitespace-nowrap">{product.brand}</td>
                   <td className="p-2  whitespace-nowrap">₱{product.price}</td>
                   <td className="p-2  whitespace-nowrap">{product.stocks}</td>
                   <td className="p-2  whitespace-nowrap flex items-center justify-center">
-                    <img src={`/uploads/${product.p_image}`} alt={product.pname} className="w-20 h-20 object-cover whitespace-nowrap" />
+                    <img 
+                      src={`http://localhost/Customer_M_system/backend/uploads/${product.p_image}`} 
+                      alt={product.pname} 
+                      className="w-20 h-20 object-cover whitespace-nowrap" 
+                    />
                   </td>
                   <td className="p-2  whitespace-nowrap">{new Date(product.created_at).toLocaleString()}</td>
                   <td className="p-2 space-x-2">

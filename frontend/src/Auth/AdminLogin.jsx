@@ -33,6 +33,7 @@ const AdminLogin = () => {
        
         if (response.data.error === false) {
            // alert('Login successful!');
+           localStorage.setItem('user_id', response.data.user.user_id);
             navigate('/admin-dashboard'); 
         } else {
             alert(response.data.message); 

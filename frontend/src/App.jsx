@@ -18,10 +18,11 @@ import Supports from './components/Admin/Supports'
 import Users from './components/Admin/Users'
 import Ai_recommendations from './components/Admin/Ai_recommendations'
 import SupportTickets from './components/Customer/SupportTickets'
-import Customer_Dashboard from './components/Customer/Customer_Dashboard'
 import ChatSupport from './components/Customer/ChatSupport'
 import CTA from './components/landing/CTA'
 import Products from './components/Admin/Products'
+import Cart from './components/Customer/Cart'
+import C_Home from './components/Customer/C_Home'
 // import Login from './Auth/Login'
 // import Register from './Auth/Register'
 
@@ -39,7 +40,6 @@ const App = () => {
     <Route path="/admin-login" element={<AdminLogin />} />
     <Route path="/customer-access" element={<LoginReg />} />
   </Route>
-
   {/* Admin Dashboard Layout */}
   <Route path="/" element={<DashboardLayout />}>
   <Route path='/dashboard' element={<Dashboard/>}/>
@@ -53,10 +53,10 @@ const App = () => {
   </Route>
   {/* Customer Layout */}
   <Route path="/" element={<Cust_Layout />}>
-  <Route path="/cust-dashboard" element={<Customer_Dashboard />} />
-  <Route path="/c-dashboard" element={<Dashboard />} />
+  <Route path="/c-dashboard" element={<C_Home />} />
   <Route path="/profile" element={<Profile />} />
   <Route path="/chat-support" element={<ChatSupport />} />
+  <Route path='/cart' element={<Cart/>} />
   <Route path="/my-orders" element={<Orders />} />
   <Route path="/support-tickets" element={<SupportTickets />} />
   <Route path="/u-settings" element={<Settings />} />

@@ -258,9 +258,8 @@ const Customers = () => {
 
       {/* Customer Table */}
       <div className="overflow-x-auto bg-gray-300 rounded-lg shadow-md w-full max-h-[600px] mt-10">
-        <h2 className="text-xl font-bold p-4">Customer List</h2>
-        <div className="overflow-y-auto max-h-[400px]">
           <table className="min-w-full text-sm border-collapse border border-gray-300">
+          <caption className="text-lg font-bold text-center p-4">Customers List</caption>
             <thead className="bg-[#0E1336] text-white sticky top-0">
               <tr>
                 <th className="p-2 whitespace-nowrap">ID</th>
@@ -320,7 +319,6 @@ const Customers = () => {
           </table>
         </div>
       </div>
-    </div>
   );
 };
 

@@ -230,15 +230,21 @@ function login() {
         return;
     }
 
-    $stmt = $connect->prepare("SELECT * FROM users WHERE email = ?");
+    $stmt = $connect->prepare("SELECT user_id, username, email, password_hash FROM users WHERE email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $result = $stmt->get_result();
 
     if ($user = $result->fetch_assoc()) {
         if (password_verify($password, $user['password_hash'])) {
+            // SUCCESS: Login OK
+            $res['error'] = false;
             $res['message'] = 'Login successful.';
-            $res['user'] = $user;
+            $res['user'] = [
+                'user_id' => $user['user_id'],
+                'username' => $user['username'],
+                'email' => $user['email']
+            ];
         } else {
             $res['error'] = true;
             $res['message'] = 'Invalid password.';

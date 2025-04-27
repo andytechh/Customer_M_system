@@ -50,9 +50,10 @@ const LoginReg = () => {
       console.log(response.data);
 
       if (!response.data.error) {
+        localStorage.setItem('user_id', response.data.user.user_id);
         alert('Login successful!');
         setInsertModal(false);
-        navigate('/cust-dashboard'); // Redirect to the dashboard or another page
+        navigate('/c-dashboard'); // Redirect to the dashboard or another page
       } else {
         alert(response.data.message);
       }
