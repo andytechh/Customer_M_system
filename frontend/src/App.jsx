@@ -56,7 +56,7 @@ const App = () => {
   <Route path="/c-dashboard" element={<C_Home />} />
   <Route path="/profile" element={<Profile />} />
   <Route path="/chat-support" element={<ChatSupport />} />
-  <Route path='/cart' element={<Cart/>} />
+  <Route path='/cart' element={<Cart />} />
   <Route path="/my-orders" element={<Orders />} />
   <Route path="/support-tickets" element={<SupportTickets />} />
   <Route path="/u-settings" element={<Settings />} />

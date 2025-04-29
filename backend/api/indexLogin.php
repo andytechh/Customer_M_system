@@ -15,6 +15,8 @@ switch ($action) {
     case 'view':
         view();
         break;
+    case 'user':
+        User();
     case 'viewUser':
         testUser();
         break;
@@ -46,7 +48,38 @@ switch ($action) {
         echo json_encode($res);
         break;
 }
+function User() {
+    global $connect, $res;
 
+    $user_id = $_GET['user_id'] ?? null;
+    if (!$user_id) {
+        $res['error'] = true;
+        $res['message'] = 'User ID not provided.';
+        echo json_encode($res);
+        return;
+    }
+
+    error_log("Received user_id: " . $user_id); 
+    $query = "
+        SELECT uname
+        FROM users
+        WHERE user_id = ?
+    ";
+    $stmt = $connect->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result && $result->num_rows > 0) {
+        $user = $result->fetch_assoc();
+        echo json_encode($user);
+    } else {
+        $res['error'] = true;
+        $res['message'] = 'No user found...';
+        error_log("No user found for user_id: " . $user_id); // failure
+        echo json_encode($res);
+    }
+}
 function updateUser() {
     global $connect, $res;
 

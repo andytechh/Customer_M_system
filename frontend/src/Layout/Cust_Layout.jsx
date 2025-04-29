@@ -4,12 +4,15 @@ import {
   Search, LayoutGrid, Users, ShoppingBag, Bot,
   CircleHelp, MessageCircleWarning, Settings, Menu, Bell, UserPen, ShoppingCart 
 } from 'lucide-react'
-
+import { useEffect, useState } from 'react'
+import axios from 'axios'
+const apiURL = "http://localhost/Customer_M_system/backend/api/indexLogin.php?action=";
 const Cust_Layout = () => {
-    const [user, isUser] = React.useState(false)
+    const [user, setUser] = React.useState(false)
     const [loading, setLoading] = React.useState(true)
     const [sidebarOpen, setSidebarOpen] = React.useState(false)
     const [overlay, setOverlay] = React.useState(false)
+    const [user_Id, setUser_Id] = useState(null);
     const navigate = useNavigate()
     const handleLogout = () => {
       localStorage.removeItem('user_id');
@@ -25,6 +28,32 @@ const Cust_Layout = () => {
       setSidebarOpen(false)
       setOverlay(false)
     }
+    useEffect(() => {
+    fetchUser();
+    const userId = localStorage.getItem('userId');
+    setUser_Id(userId);
+  }, []);
+
+  const fetchUser = async () => {
+    try {
+      const userId = localStorage.getItem('userId');
+      const response = await axios.get(`${apiURL}user`, {
+        params: { user_id: userId }
+      });
+
+      console.log(userId);
+  
+      if (!response.data.error) {
+        setUser(response.data); 
+      } else {
+        alert(response.data.message || "No user found");
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
     return (
       <div className="flex flex-col min-h-screen h-screen bg-gray-100 overflow-hidden">
@@ -66,8 +95,17 @@ const Cust_Layout = () => {
               <NavItem to="/u-settings" icon={<Settings />} label="Settings" path={location.pathname} />
             </ul>
             <div className="mt-6 border-t pt-4">
-              <p className="text-sm text-gray-400">Logged in as: <strong className='text-white'>Customer</strong></p>
-              <button className="mt-2 text-red-600 hover:text-red-800" onClick={handleLogout}>Logout</button>
+            <p className="text-sm text-gray-400">Logged in as: </p>
+          {loading ? (
+            <p>Loading...</p>
+          ) : !user ? (
+            <p>User not found.</p>
+          ) : (
+            <p className="text-2xl max-w-40 w-full text-white">
+              <strong className="text-white">{user.uname}</strong>
+            </p>
+          )}
+          <button className="mt-2 text-red-600 hover:text-red-800" onClick={handleLogout}>Logout</button>
             </div>
           </nav>
         </aside>

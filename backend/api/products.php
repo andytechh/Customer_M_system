@@ -13,7 +13,14 @@ switch ($action) {
   case 'viewProducts':
     viewProducts();
     break;
-  case 'viewCart':
+ case 'removeFromCart':
+    removeFromCart();
+    break;
+case 'updateQuantity':
+    updateQuantity();
+    break;
+  case 'viewcart':
+    $res["fuch"] = true;
     viewCart();
     break;
   case 'updateProduct':
@@ -35,15 +42,71 @@ switch ($action) {
     echo json_encode($res);
     break;
 }
-function viewCart(){
-    
-}
-function addToCart() {
+function viewCart() {
     global $connect, $res;
 
-    $input = $_POST;
+    $user_id = $_GET['user_id'] ?? null;
+    if (!$user_id) {
+        $res['error'] = true;
+        $res['message'] = 'User ID not provided.';
+        echo json_encode($res);
+        return;
+    }
+    $query = "
+        SELECT ci.cart_id, ci.product_id, ci.quantity, 
+               p.pname, p.price, p.p_image 
+        FROM cart_items ci
+        JOIN products p ON ci.product_id = p.product_id
+        WHERE ci.user_id = ?
+    ";
+    $stmt = $connect->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-    $required = ['action', 'product_id', 'quantity', 'variation', 'user_id'];
+    if ($result && $result->num_rows > 0) {
+        $cartItems = $result->fetch_all(MYSQLI_ASSOC);
+        echo json_encode($cartItems);
+    } else {
+        $res['error'] = true;
+        $res['message'] = 'No items in cart.';
+        echo json_encode($res);
+    }
+}
+
+function removeFromCart() {
+    global $connect, $res;
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (empty($input['cart_id'])) {
+        $res['error'] = true;
+        $res['message'] = 'Cart ID not provided.';
+        echo json_encode($res);
+        return;
+    }
+
+    $cart_id = $input['cart_id'];
+    $query = "DELETE FROM cart_items WHERE cart_id = ?";
+    $stmt = $connect->prepare($query);
+    $stmt->bind_param("i", $cart_id);
+
+    if ($stmt->execute()) {
+        $res['message'] = 'Item removed from cart successfully.';
+    } else {
+        $res['error'] = true;
+        $res['message'] = 'Error removing item from cart.';
+    }
+
+    echo json_encode($res);
+}
+
+function updateQuantity() {
+    global $connect, $res;
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input) $input = $_POST;
+
+    $required = ['cart_id', 'quantity'];
     foreach ($required as $field) {
         if (empty($input[$field])) {
             $res['error'] = true;
@@ -52,31 +115,83 @@ function addToCart() {
             return;
         }
     }
+
+    $cart_id = $input['cart_id'];
+    $quantity = $input['quantity'];
+
+    try {
+        $stmt = $connect->prepare("UPDATE cart_items SET quantity = ? WHERE cart_id = ?");
+        $stmt->bind_param("ii", $quantity, $cart_id);
+
+        if ($stmt->execute()) {
+            $res['message'] = 'Cart item quantity updated successfully.';
+        } else {
+            $res['error'] = true;
+            $res['message'] = 'Error updating cart item quantity.';
+        }
+    } catch (Exception $e) {
+        $res['error'] = true;
+        $res['message'] = $e->getMessage();
+    }
+
+    echo json_encode($res);
+}
+function addToCart() {
+    global $connect, $res;
+    
+    $input = $_POST;
+    $required = ['action', 'product_id', 'user_id'];
+    foreach ($required as $field) {
+        if (empty($input[$field])) {
+            $res['error'] = true;
+            $res['message'] = "Missing $field";
+            echo json_encode($res);
+            return;
+        }
+    }
+
     try {
         $connect->begin_transaction();
+        $product_id = $input['product_id'];
+        $user_id = $input['user_id'];
+        $quantity_to_add = 1;
 
-        // Check product exists
         $stmt = $connect->prepare("SELECT stocks FROM products WHERE product_id = ?");
-        $stmt->bind_param("i", $input['product_id']);
+        $stmt->bind_param("i", $product_id);
         $stmt->execute();
         $product = $stmt->get_result()->fetch_assoc();
 
         if (!$product) throw new Exception('Product not found');
-        if ($product['stocks'] < $input['quantity']) throw new Exception('Insufficient stock');
-
-        // Add to cart
-        $stmt = $connect->prepare("INSERT INTO cart_items (user_id, product_id, quantity, variation) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("iiis", $input['user_id'], $input['product_id'], $input['quantity'], $input['variation']);
+        if ($product['stocks'] < $quantity_to_add) throw new Exception('Insufficient stock');
+        $stmt = $connect->prepare("SELECT cart_id, quantity FROM cart_items WHERE user_id = ? AND product_id = ?");
+        $stmt->bind_param("ii", $user_id, $product_id);
         $stmt->execute();
+        $result = $stmt->get_result();
 
-        // Update stock
+        if ($result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            $new_quantity = $row['quantity'] + $quantity_to_add;
+
+            $update_stmt = $connect->prepare("UPDATE cart_items SET quantity = ? WHERE cart_id = ?");
+            $update_stmt->bind_param("ii", $new_quantity, $row['cart_id']);
+            $update_stmt->execute();
+
+            $res['message'] = 'Product quantity updated in cart.';
+        } else {
+    
+            $insert_stmt = $connect->prepare("INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, ?)");
+            $insert_stmt->bind_param("iii", $user_id, $product_id, $quantity_to_add);
+            $insert_stmt->execute();
+
+            $res['message'] = 'Product added to cart successfully.';
+        }
+
+
         $stmt = $connect->prepare("UPDATE products SET stocks = stocks - ? WHERE product_id = ?");
-        $stmt->bind_param("ii", $input['quantity'], $input['product_id']);
+        $stmt->bind_param("ii", $quantity_to_add, $product_id);
         $stmt->execute();
 
         $connect->commit();
-        $res['message'] = 'Added to cart successfully';
-
     } catch (Exception $e) {
         $connect->rollback();
         $res['error'] = true;
@@ -242,7 +357,6 @@ function updateProduct() {
         return;
     }
 
-    // Initialize variables
     $fileName = null;
     $updateImage = false;
 
