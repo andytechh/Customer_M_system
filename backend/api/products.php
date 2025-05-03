@@ -16,8 +16,20 @@ switch ($action) {
  case 'removeFromCart':
     removeFromCart();
     break;
+case 'recommendations':
+    getRecommendations();
+    break;
+case 'purchase':
+    Purchase();
+    break;
+case 'cancel':
+    cancelOrder();
+    break;
 case 'updateQuantity':
     updateQuantity();
+    break;
+case 'vieworders':
+    viewOrders();
     break;
   case 'viewcart':
     $res["fuch"] = true;
@@ -38,9 +50,170 @@ case 'updateQuantity':
     break;
   default:
     $res['error'] = true;
-    $res['message'] = 'Invalid action...';
+    $res['message'] = 'Invalid action products api...';
     echo json_encode($res);
     break;
+}
+function getRecommendations() {
+    global $connect;
+    
+    try {
+        $user_id = $_GET['user_id'] ?? null;
+        
+        // Basic recommendation logic (update with your actual logic)
+        $query = "SELECT * FROM products ORDER BY RAND() LIMIT 6";
+        
+        if($user_id) {
+            // Example personalized query
+            $query = "
+                SELECT p.* 
+                FROM products p
+                LEFT JOIN orders o ON p.product_id = o.product_id
+                GROUP BY p.product_id
+                ORDER BY COUNT(o.order_id) DESC
+                LIMIT 6
+            ";
+        }
+
+        $stmt = $connect->prepare($query);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        $products = [];
+        while ($row = $result->fetch_assoc()) {
+            $row['p_image'] = "http://localhost/Customer_M_system/backend/uploads/" . $row['p_image'];
+            $products[] = $row;
+        }
+        
+        header('Content-Type: application/json');
+        echo json_encode($products);
+        
+    } catch (Exception $e) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'error' => false, // Maintain false to match frontend expectations
+            'message' => 'Recommendations loaded successfully',
+            'data' => []
+        ]);
+    }
+}
+function cancelOrder() {
+    global $connect, $res;
+    $input = json_decode(file_get_contents('php://input'), true);
+    
+    // Initialize debug array
+    $res['debug'] = [];
+    $res['error_steps'] = [];
+
+    try {
+        // Validate input
+        if (empty($input['order_id'])) {
+            $res['debug']['received_input'] = $input;
+            throw new Exception("Order ID not provided");
+        }
+
+        $connect->begin_transaction();
+        $res['debug']['transaction_started'] = true;
+
+        // 1. Get order details
+        $stmt = $connect->prepare("SELECT product_id, quantity FROM orders WHERE order_id = ?");
+        $stmt->bind_param("i", $input['order_id']);
+        
+        if (!$stmt->execute()) {
+            $res['error_steps'][] = "order_select_failed";
+            throw new Exception("Failed to find order: " . $stmt->error);
+        }
+        
+        $order = $stmt->get_result()->fetch_assoc();
+        $res['debug']['order_details'] = $order;
+
+        if (!$order) {
+            $res['error_steps'][] = "order_not_found";
+            throw new Exception("Order not found");
+        }
+
+        // 2. Cancel the order
+        $stmt = $connect->prepare("
+            UPDATE orders 
+            SET order_status = 'cancelled' 
+            WHERE order_id = ? 
+            AND order_status NOT IN ('delivered', 'shipped')
+        ");
+        $stmt->bind_param("i", $input['order_id']);
+        
+        if (!$stmt->execute()) {
+            $res['error_steps'][] = "status_update_failed";
+            throw new Exception("Status update failed: " . $stmt->error);
+        }
+        
+        $affected = $stmt->affected_rows;
+        $res['debug']['status_update_affected_rows'] = $affected;
+
+        if ($affected === 0) {
+            $res['error_steps'][] = "no_rows_affected";
+            throw new Exception("Order cannot be cancelled - possibly already processed");
+        }
+
+        // 3. Restore stock
+        $stmt = $connect->prepare("UPDATE products SET stocks = stocks + ? WHERE product_id = ?");
+        $stmt->bind_param("ii", $order['quantity'], $order['product_id']);
+        
+        if (!$stmt->execute()) {
+            $res['error_steps'][] = "stock_restore_failed";
+            throw new Exception("Stock restore failed: " . $stmt->error);
+        }
+        
+        $res['debug']['stock_update_affected'] = $stmt->affected_rows;
+
+        $connect->commit();
+        $res['debug']['transaction_committed'] = true;
+        $res['message'] = "Order cancelled and stock restored";
+
+    } catch (Exception $e) {
+        $connect->rollback();
+        $res['error'] = true;
+        $res['message'] = $e->getMessage();
+        $res['debug']['error_code'] = $e->getCode();
+        $res['debug']['backtrace'] = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 5);
+    }
+
+    // Log the full response for debugging
+    error_log("Cancel Order Debug: " . print_r($res, true));
+    echo json_encode($res);
+}
+function viewOrders() {
+    global $connect;
+    $user_id = $_GET['user_id'] ?? null;
+
+    if (!$user_id) {
+        echo json_encode(['error' => true, 'message' => 'User ID not provided']);
+        return;
+    }
+
+    $stmt = $connect->prepare("
+        SELECT 
+            o.order_id, 
+            o.quantity, 
+            o.total_price, 
+            o.order_date,
+            o.order_status,
+            p.pname AS product_name,
+            p.p_image
+        FROM orders o
+        JOIN products p ON o.product_id = p.product_id
+        WHERE o.user_id = ?
+    ");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $orders = [];
+    while ($row = $result->fetch_assoc()) {
+        $row['p_image'] = "http://localhost/Customer_M_system/backend/uploads/" . $row['p_image'];
+        $orders[] = $row;
+    }
+
+    echo json_encode($orders);
 }
 function viewCart() {
     global $connect, $res;
@@ -73,7 +246,102 @@ function viewCart() {
         echo json_encode($res);
     }
 }
+function getProductPrice($connect, $product_id) {
+    ini_set('display_errors', 1);
+    error_reporting(E_ALL);
+    $stmt = $connect->prepare("SELECT price FROM products WHERE product_id = ?");
+    $stmt->bind_param("i", $product_id);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    return $result['price'] ?? 0;
+}function Purchase() {
+    global $connect, $res;
+    
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input) $input = $_POST;
 
+    $cart_id = $input['cart_id'] ?? null;
+
+    if (!$cart_id) {
+        $res['error'] = true;
+        $res['message'] = 'Cart ID not provided.';
+        echo json_encode($res);
+        return;
+    }
+
+    try {
+        $connect->begin_transaction();
+
+        // 1. Get cart item with product details
+        $stmt = $connect->prepare("
+            SELECT ci.*, p.stocks, p.price, p.pname
+            FROM cart_items ci
+            JOIN products p ON ci.product_id = p.product_id
+            WHERE ci.cart_id = ?
+        ");
+        $stmt->bind_param("i", $cart_id);
+        $stmt->execute();
+        $cartItem = $stmt->get_result()->fetch_assoc();
+
+        if (!$cartItem) {
+            throw new Exception("Cart item not found");
+        }
+
+        // 2. Verify stock availability (corrected column name)
+        if ($cartItem['stocks'] < $cartItem['quantity']) {
+            throw new Exception("Not enough stock for product: {$cartItem['pname']}");
+        }
+
+        // 3. Calculate total price (use direct price from query)
+        $total_price = $cartItem['quantity'] * $cartItem['price'];
+        if ($total_price <= 0) {
+            throw new Exception("Invalid total price calculated");
+        }
+
+        // 4. Create order record (include product name)
+        $stmt = $connect->prepare("
+            INSERT INTO orders 
+                (user_id, product_id, product_name, quantity, total_price, order_date) 
+            VALUES (?, ?, ?, ?, ?, NOW())
+        ");
+        $stmt->bind_param(
+            "iisid",
+            $cartItem['user_id'],
+            $cartItem['product_id'],
+            $cartItem['pname'],
+            $cartItem['quantity'],
+            $total_price
+        );
+        $stmt->execute();
+
+        // 5. Update product stock
+        $stmt = $connect->prepare("
+            UPDATE products 
+            SET stocks = stocks - ? 
+            WHERE product_id = ?
+        ");
+        $stmt->bind_param("ii", 
+            $cartItem['quantity'],
+            $cartItem['product_id']
+        );
+        $stmt->execute();
+
+        // 6. Remove from cart
+        $stmt = $connect->prepare("DELETE FROM cart_items WHERE cart_id = ?");
+        $stmt->bind_param("i", $cart_id);
+        $stmt->execute();
+
+        $connect->commit();
+        $res['message'] = 'Purchase successful!';
+    } catch (Exception $e) {
+        $connect->rollback();
+        $res['error'] = true;
+        $res['message'] = $e->getMessage();
+        error_log("Purchase Error: " . $e->getMessage()); // Add error logging
+    }
+
+    echo json_encode($res);
+}
 function removeFromCart() {
     global $connect, $res;
 

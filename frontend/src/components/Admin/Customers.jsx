@@ -125,15 +125,6 @@ const Customers = () => {
 
   return (
     <div className="flex flex-col w-7/9 h-90vh overflow-hidden relative">
-      {/* Image and Add Customer Button */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
-        <img className='rounded-full w-32 h-32 mb-4 sm:mb-0 sm:mr-4' src="/src/assets/solo.jpg" alt="Profile" />
-        <button onClick={() => setOpenModal(true)} className="w-1/2 btn-primary sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-md shadow-md hover:bg-blue-700 transition duration-200">
-          Add New Customer
-        </button>
-      </div>
-
-      {/* Search Bar (only on mobile) */}
       <div className="sm:hidden mb-4">
         <input
           type="text"
@@ -144,7 +135,7 @@ const Customers = () => {
         />
       </div>
 
-      {/* Add Customer Modal */}
+      {/* Add Customer Modal
       {openModal && (
         <div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-lg relative">
@@ -163,7 +154,7 @@ const Customers = () => {
             </form>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Edit Customer Modal */}
       {editModal && editingCustomer && (
@@ -257,67 +248,67 @@ const Customers = () => {
       )}
 
       {/* Customer Table */}
-      <div className="overflow-x-auto bg-gray-300 rounded-lg shadow-md w-full max-h-[600px] mt-10">
-          <table className="min-w-full text-sm border-collapse border border-gray-300">
-          <caption className="text-lg font-bold text-center p-4">Customers List</caption>
-            <thead className="bg-[#0E1336] text-white sticky top-0">
-              <tr>
-                <th className="p-2 whitespace-nowrap">ID</th>
-                <th className="p-2 whitespace-nowrap">Name</th>
-                <th className="p-2 whitespace-nowrap">Username</th>
-                <th className="p-2 whitespace-nowrap">Email</th>
-                <th className="p-2 whitespace-nowrap">Contact</th>
-                <th className="p-2 whitespace-nowrap">Status</th>
-                <th className="p-2 whitespace-nowrap">Actions</th>
+  <div className="overflow-x-auto bg-gray-300 rounded-lg shadow-md w-full max-h-[600px] mt-10">
+      <table className="min-w-full text-sm border-collapse border border-gray-300">
+      <caption className="text-lg font-bold text-center p-4">Customers List</caption>
+        <thead className="bg-[#0E1336] text-white sticky top-0">
+          <tr>
+            <th className="p-2 whitespace-nowrap">ID</th>
+            <th className="p-2 whitespace-nowrap">Name</th>
+            <th className="p-2 whitespace-nowrap">Username</th>
+            <th className="p-2 whitespace-nowrap">Email</th>
+            <th className="p-2 whitespace-nowrap">Contact</th>
+            <th className="p-2 whitespace-nowrap">Status</th>
+            <th className="p-2 whitespace-nowrap">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-200">
+          {filteredUsers.length > 0 ? (
+            filteredUsers.map((user, index) => (
+              <tr key={index} className="bg-white even:bg-gray-50 text-center">
+                <td className="p-2 whitespace-nowrap">{user.user_id}</td>
+                <td className="p-2 whitespace-nowrap">{user.uname}</td>
+                <td className="p-2 whitespace-nowrap">{user.username}</td>
+                <td className="p-2 whitespace-nowrap">{user.email}</td>
+                <td className="p-2 whitespace-nowrap">{user.contacts}</td>
+                <td className="p-2 whitespace-nowrap">{user.ustatus}</td>
+                <td className="p-2 space-x-2">
+                  <div className='flex justify-center items-center gap-2'>
+                    <button
+                      onClick={() => handleView(user.user_id)}
+                      className="w-1/5 py-3 btn-secondary rounded-lg"
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingCustomer(user);
+                        setEditModal(true);
+                      }}
+                      className="text-center btn-alternative rounded-lg"
+                    >
+                      <SquarePen size={25} />
+                    </button>
+                    <button
+                      onClick={() => del(user.user_id)}
+                      className="text-center btn-alternative1 rounded-lg"
+                    >
+                      <Trash2 size={25} />
+                    </button>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map((user, index) => (
-                  <tr key={index} className="bg-white even:bg-gray-50 text-center">
-                    <td className="p-2 whitespace-nowrap">{user.user_id}</td>
-                    <td className="p-2 whitespace-nowrap">{user.uname}</td>
-                    <td className="p-2 whitespace-nowrap">{user.username}</td>
-                    <td className="p-2 whitespace-nowrap">{user.email}</td>
-                    <td className="p-2 whitespace-nowrap">{user.contacts}</td>
-                    <td className="p-2 whitespace-nowrap">{user.ustatus}</td>
-                    <td className="p-2 space-x-2">
-                      <div className='flex justify-center items-center gap-2'>
-                        <button
-                          onClick={() => handleView(user.user_id)}
-                          className="w-1/5 py-3 btn-secondary rounded-lg"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingCustomer(user);
-                            setEditModal(true);
-                          }}
-                          className="text-center btn-alternative rounded-lg"
-                        >
-                          <SquarePen size={25} />
-                        </button>
-                        <button
-                          onClick={() => del(user.user_id)}
-                          className="text-center btn-alternative1 rounded-lg"
-                        >
-                          <Trash2 size={25} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="7" className="text-center py-4">
-                    No users found!
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="7" className="text-center py-4">
+                No users found!
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
       </div>
   );
 };

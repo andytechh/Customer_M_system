@@ -15,6 +15,9 @@ switch ($action) {
     case 'view':
         view();
         break;
+    case 'recommendation':
+        getRecommendations();
+        break;
     case 'user':
         User();
     case 'viewUser':
@@ -29,10 +32,7 @@ switch ($action) {
     case 'register':
         register();
         break;
-    case 'admin-login':
-        admin_login();
-        break;
-        case 'deleteUser':
+    case 'deleteUser':
             error_log("Received POST data: " . print_r($_POST, true));
             if (isset($_POST['userId'])) {
                 deleteUserAndReorder($_POST['userId']);
@@ -47,6 +47,41 @@ switch ($action) {
         $res['message'] = 'Invalid action.';
         echo json_encode($res);
         break;
+}
+
+function getRecommendations() {
+    global $connect;
+    
+    $user_id = $_GET['user_id'] ?? null;
+    
+    try {
+        $query = "
+            SELECT * FROM products 
+            ORDER BY RAND() 
+            LIMIT 6
+        ";
+        
+        if ($user_id) {
+            // Add personalized logic based on user data
+            // Example: Get products from same category as previous purchases
+        }
+
+        $stmt = $connect->prepare($query);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        $products = [];
+        while ($row = $result->fetch_assoc()) {
+            $row['image'] = "http://localhost/Customer_M_system/backend/uploads/" . $row['p_image'];
+            $products[] = $row;
+        }
+        
+        echo json_encode($products);
+        
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
+    }
 }
 function User() {
     global $connect, $res;
@@ -215,81 +250,72 @@ function view() {
         echo json_encode(['error' => true, 'message' => 'No customers found']);
     }
 }
-
-function admin_login() {
-    global $connect, $res;
-
-    $email = $_POST['email'] ?? '';
-    $password = $_POST['password'] ?? '';
-
-    if (empty($email) || empty($password)) {
-        $res['error'] = true;
-        $res['message'] = 'Email and password are required.';
-        echo json_encode($res);
-        return;
-    }
-
-    $stmt = $connect->prepare("SELECT * FROM admins WHERE email = ? AND roles = 'admin'");
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($user = $result->fetch_assoc()) {
-        if ($user && $password == $user['password_hash']) {
-            $res['error'] = false;
-            $res['message'] = 'Login successful.';
-            $res['user'] = $user;
-        } else {
-            $res['error'] = true;
-            $res['message'] = 'Invalid email or password.';
-        }
-    } else {
-        $res['error'] = true;
-        $res['message'] = 'Email not found or not an admin.';
-    }
-
-    echo json_encode($res);
-}
 function login() {
     global $connect, $res;
 
-    $email = $_POST['email'] ?? '';
+    $email = trim($_POST['email'] ?? ''); 
     $password = $_POST['password'] ?? '';
 
     if (empty($email) || empty($password)) {
-        $res['error'] = true;
-        $res['message'] = 'Email and password are required.';
-        echo json_encode($res);
+        echo json_encode(['error' => true, 'message' => 'Email and password are required.']);
         return;
     }
+    error_log("Received email: " . $email);
+    error_log("Received password: " . $password); 
 
-    $stmt = $connect->prepare("SELECT user_id, username, email, password_hash FROM users WHERE email = ?");
+    $stmt = $connect->prepare("SELECT admin_id, email, password_hash, roles FROM admins WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($admin = $result->fetch_assoc()) {
+        error_log("Admin found. Verifying password...");
+        if ($password == $admin['password_hash']) {
+            echo json_encode([
+                'error' => false,
+                'message' => 'Login successful.',
+                'user' => [
+                    'user_id' => $admin['admin_id'],
+                    'email' => $admin['email'],
+                    'role' => $admin['roles']
+                ]
+            ]);
+            return;
+        } else {
+            error_log("Admin password verification failed."); 
+            echo json_encode(['error' => true, 'message' => 'Invalid admin password.']);
+            return;
+        }
+    }
+    $stmt = $connect->prepare("SELECT user_id, username, email, password_hash, roles FROM users WHERE email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $result = $stmt->get_result();
 
     if ($user = $result->fetch_assoc()) {
+        error_log("User found. Verifying password..."); 
+
         if (password_verify($password, $user['password_hash'])) {
-            // SUCCESS: Login OK
-            $res['error'] = false;
-            $res['message'] = 'Login successful.';
-            $res['user'] = [
-                'user_id' => $user['user_id'],
-                'username' => $user['username'],
-                'email' => $user['email']
-            ];
+            echo json_encode([
+                'error' => false,
+                'message' => 'Login successful.',
+                'user' => [
+                    'user_id' => $user['user_id'],
+                    'username' => $user['username'],
+                    'email' => $user['email'],
+                    'role' => $user['roles']
+                ]
+            ]);
+            return;
         } else {
-            $res['error'] = true;
-            $res['message'] = 'Invalid password.';
+            error_log("User password verification failed."); 
+            echo json_encode(['error' => true, 'message' => 'Invalid password.']);
+            return;
         }
-    } else {
-        $res['error'] = true;
-        $res['message'] = 'Email not found.';
     }
-
-    echo json_encode($res);
+    error_log("Email not found in admins or users: " . $email); 
+    echo json_encode(['error' => true, 'message' => 'Email not found.']);
 }
-
 function deleteUserAndReorder($userId) {
     global $connect, $res;
 
@@ -310,7 +336,6 @@ function deleteUserAndReorder($userId) {
 
     echo json_encode($res);
 }
-
 function getNextAvailableId($connect) {
     $query = "SELECT MIN(t1.user_id + 1) AS next_id
               FROM users t1
@@ -340,7 +365,6 @@ function register() {
         echo json_encode(['type' => 'error', 'message' => 'Invalid JSON']);
         return;
     }
-
     $uname = $data['uname'] ?? null;
     $username = $data['username'] ?? null;
     $uemail = $data['uemail'] ?? null;
@@ -372,7 +396,7 @@ function register() {
     if ($stmt->execute()) {
         $user_id = $nextId;
 
-
+    
         $stmt2 = $connect->prepare("INSERT INTO customers (user_id, uname, uaddress) VALUES (?, ?, ?)");
         if (!$stmt2) {
             echo json_encode(['type' => 'error', 'message' => 'Failed to prepare customer statement']);
@@ -382,7 +406,12 @@ function register() {
         $stmt2->bind_param("iss", $user_id, $uname, $uaddress);
 
         if ($stmt2->execute()) {
-            echo json_encode(['type' => 'success', 'message' => 'User and customer registered']);
+            // Return success response with user_id
+            echo json_encode([
+                'type' => 'success',
+                'message' => 'User and customer registered',
+                'user_id' => $user_id 
+            ]);
         } else {
             echo json_encode(['type' => 'error', 'message' => 'Customer insert failed']);
         }

@@ -38,11 +38,7 @@ const Navbar = () => {
               <Link to="/contact" className="text-gray-700 hover:text-[#1CB5E0] px-3 py-2 rounded-md font-medium">
                 Contact
               </Link>
-              <Link  className="btn-secondary ml-4" to="/admin-login"  onClick={handleLogin}>
-               Admin Log in
-              </Link>
-            
-              <Link to="/customer-access" className="btn-primary">
+                  <Link to="/customer-access" className="btn-primary">
                 Get Started
               </Link>
             </div>
@@ -77,13 +73,6 @@ const Navbar = () => {
               Contact
             </Link>
             <div className="flex space-x-2 mt-4 pt-2 border-t border-gray-200">
-              <Link
-                href="/admin-login" 
-                onClick={handleLogin} 
-                className="w-1/2 text-center btn-secondary text-sm"
-              >
-                Log in
-              </Link>
               <a href="/signup" className="w-1/2 text-center btn-primary text-sm">
                 Get Started
               </a>

@@ -1,13 +1,14 @@
 import { Users, BarChart2, Calendar, MessageCircle, Database, Shield } from 'lucide-react';
 import axios  from 'axios';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const apiURL = "http://localhost/Customer_M_system/backend/api/products.php?action=";
 
 const Cart = () => {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchCart();
@@ -62,6 +63,24 @@ const handleQuantityChange = (cartId, newQuantity) => {
       item.cart_id === cartId ? { ...item, quantity: parseInt(newQuantity, 10) } : item
     )
   );
+};
+
+const buyNow = async (cartId) => {
+  try {
+    const response = await axios.post(`${apiURL}purchase`, {
+      cart_id: cartId
+    });
+
+    if (!response.data.error) {
+      alert("Purchase successful!");
+      navigate('/my-orders');
+    } else {
+      alert(`Error: ${response.data.message}`);
+    }
+  } catch (error) {
+    console.error("Purchase error:", error);
+    alert("An error occurred during purchase.");
+  }
 };
 
 const saveQuantity = async (cartId, newQuantity) => {

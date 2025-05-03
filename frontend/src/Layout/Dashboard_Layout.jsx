@@ -12,7 +12,7 @@ const DashboardLayout = () => {
   const location = useLocation()
 
   const handleLogout = () => {
-    navigate('/admin-login')
+    navigate('/customer-access')
   }
 
   const toggleSidebar = () => {
@@ -63,7 +63,6 @@ const DashboardLayout = () => {
               <NavItem to="/customers" icon={<Users />} label="Customers" path={location.pathname} />
               <NavItem to="/orders" icon={<ShoppingBag />} label="Orders" path={location.pathname} />
               <NavItem to="/products" icon={<ShoppingCart />} label="Products" path={location.pathname} />
-              <NavItem to="/reports" icon={<Bot />} label="AI Recommendations" path={location.pathname} />
               <NavItem to="/support" icon={<CircleHelp />} label="Chat Support" path={location.pathname} />
               <NavItem to="/report-issues" icon={<MessageCircleWarning />} label="Reports" path={location.pathname} />
               <NavItem to="/settings" icon={<Settings />} label="Settings" path={location.pathname} />

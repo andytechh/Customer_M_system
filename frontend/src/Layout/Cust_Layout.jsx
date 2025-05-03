@@ -89,7 +89,6 @@ const Cust_Layout = () => {
               <NavItem to="/my-orders" icon={<ShoppingBag />} label="Orders" path={location.pathname} />
               <NavItem to="/cart" icon={<ShoppingCart />} label="Cart
               " path={location.pathname} />
-              <NavItem to="/chat-support" icon={<Bot />} label="AI Recommendations" path={location.pathname} />
               <NavItem to="/chat-support" icon={<CircleHelp />} label="Chat Support" path={location.pathname} />
               <NavItem to="/support-tickets" icon={<MessageCircleWarning />} label="Reports" path={location.pathname} />
               <NavItem to="/u-settings" icon={<Settings />} label="Settings" path={location.pathname} />

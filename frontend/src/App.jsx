@@ -16,7 +16,7 @@ import Cust_Layout from './Layout/Cust_Layout'
 import Profile from './components/Customer/Profile'
 import Supports from './components/Admin/Supports'
 import Users from './components/Admin/Users'
-import Ai_recommendations from './components/Admin/Ai_recommendations'
+import Ai_recommendations from './components/Customer/Ai_recommendations'
 import SupportTickets from './components/Customer/SupportTickets'
 import ChatSupport from './components/Customer/ChatSupport'
 import CTA from './components/landing/CTA'
@@ -47,7 +47,6 @@ const App = () => {
   <Route path="/users/:user_Id" element={<Users/>}/>
   <Route path="/customers" element={<Customers />} />
   <Route path="/products" element={<Products />} />
-  <Route path="/orders" element={<Orders />} /> 
   <Route path="/reports" element={<Reports />} />
   <Route path="/Settings" element={<Settings />} />
   </Route>
@@ -55,6 +54,7 @@ const App = () => {
   <Route path="/" element={<Cust_Layout />}>
   <Route path="/c-dashboard" element={<C_Home />} />
   <Route path="/profile" element={<Profile />} />
+  <Route path="/recommendations" element={<Ai_recommendations />} />
   <Route path="/chat-support" element={<ChatSupport />} />
   <Route path='/cart' element={<Cart />} />
   <Route path="/my-orders" element={<Orders />} />

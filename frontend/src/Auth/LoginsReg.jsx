@@ -3,7 +3,39 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const apiURL = 'http://localhost/Customer_M_system/backend/api/indexLogin.php?action=';
+const apiURL2 = 'http://localhost/Customer_M_system/backend/api/products.php?action=';
 
+const RecommendationModal = ({ products, onClose }) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-2xl w-full">
+        <h2 className="text-2xl font-bold mb-4">Recommended For You</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {products.map(product => (
+            <div key={product.product_id} className="border rounded-lg p-4">
+              <img 
+                src={`http://localhost/Customer_M_system/backend/uploads/${product.p_image}`} 
+                alt={product.pname}
+                className="w-full h-32 object-cover mb-2"
+              />
+              <h3 className="font-semibold">{product.pname}</h3>
+              <p className="text-gray-600">₱{product.price}</p>
+              <button className="mt-2 btn-primary w-full">
+                Add to Cart
+              </button>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-4 btn-secondary w-full"
+        >
+          Continue to Dashboard
+        </button>
+      </div>
+    </div>
+  );
+};
 const LoginReg = () => {
   const navigate = useNavigate();
   const [insertModal, setInsertModal] = useState(false);
@@ -11,6 +43,10 @@ const LoginReg = () => {
   const [formData, setFormData] = useState({});
   const [users, setUsers] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [recommendedProducts, setRecommendedProducts] = useState([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+
 
   const fetchUsers = async () => {
     try {
@@ -31,6 +67,19 @@ const LoginReg = () => {
     setFormData({});
   };
 
+  const fetchRecommendedProducts = async (userId) => {
+    try {
+      console.log('Fetching recommendations for user:', userId);
+      const response = await axios.get(`${apiURL2}recommendations`, {
+        params: { user_id: userId }
+      });
+      console.log('Recommendations response:', response.data);
+      setRecommendedProducts(response.data);
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+    }
+  };
+
   const handleInsertChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -43,17 +92,26 @@ const LoginReg = () => {
     e.preventDefault();
     try {
       const form = new FormData();
-      form.append('email', formData.email);
+      form.append('email', formData.email.trim()); 
       form.append('password', formData.password);
-
+  
       const response = await axios.post(apiURL + 'login', form);
       console.log(response.data);
-
+  
       if (!response.data.error) {
-        localStorage.setItem('user_id', response.data.user.user_id);
+        const { user_id, role } = response.data.user;
+        localStorage.setItem('user_id', user_id);
+  
         alert('Login successful!');
         setInsertModal(false);
-        navigate('/c-dashboard'); // Redirect to the dashboard or another page
+  
+        if (role === 'admin') {
+          navigate('/admin-dashboard');
+        } else if (role === 'customer') {
+          navigate('/c-dashboard');
+        } else {
+          alert('Unknown role.');
+        }
       } else {
         alert(response.data.message);
       }
@@ -61,7 +119,6 @@ const LoginReg = () => {
       console.error('Login error:', error);
     }
   };
-
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -69,22 +126,30 @@ const LoginReg = () => {
         ...formData,
         ucreated: new Date().toISOString(),
       };
-
+  
       const response = await axios.post(apiURL + 'register', newForm);
-      console.log(response.data);
-
+      
       if (response.data.type === 'success') {
-        alert(response.data.message);
+        const userId = response.data.user_id; 
+        localStorage.setItem('user_id', userId);
+        
+        // 1. Show recommendations before navigation
+        await fetchRecommendedProducts(userId);
+        setShowRecommendations(true);
+        
+        // 2. Remove the navigate('/recommendations') call
+        alert(response.data.message); 
         setInsertModal(false);
         fetchUsers();
       } else {
-        alert(response.data.message);
+        alert(response.data.message); 
       }
     } catch (error) {
       console.error('Registration error:', error);
+      alert('Registration failed');
     }
   };
-
+  
   return (
    
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#000046] to-[#1CB5E0]  p-4">
@@ -96,7 +161,7 @@ const LoginReg = () => {
         <p className="text-sm text-gray-500">
           {isRegister ? 'Register to get started' : 'Login to your account'}
         </p>
-      </div>
+      </div> 
 
       <div className="flex justify-center gap-4 mb-6">
         <button
@@ -120,6 +185,22 @@ const LoginReg = () => {
           Register
         </button>
       </div>
+      {showRecommendations && (
+          <RecommendationModal 
+            products={recommendedProducts}
+            onClose={() => {
+              setShowRecommendations(false);
+              navigate('/c-dashboard');
+            }}
+          />
+        )}
+
+        {loadingRecommendations && (
+          <div className="text-center p-4">
+            <p className="text-gray-500">Loading recommendations...</p>
+          </div>
+        )}
+
 
       {insertModal && (
         <form
@@ -216,5 +297,6 @@ const LoginReg = () => {
 
   );
 };
+
 
 export default LoginReg;
