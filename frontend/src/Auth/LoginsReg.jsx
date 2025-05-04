@@ -6,35 +6,71 @@ const apiURL = 'http://localhost/Customer_M_system/backend/api/indexLogin.php?ac
 const apiURL2 = 'http://localhost/Customer_M_system/backend/api/products.php?action=';
 
 const RecommendationModal = ({ products, onClose }) => {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-2xl w-full">
-        <h2 className="text-2xl font-bold mb-4">Recommended For You</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {products.map(product => (
-            <div key={product.product_id} className="border rounded-lg p-4">
-              <img 
-                src={`http://localhost/Customer_M_system/backend/uploads/${product.p_image}`} 
-                alt={product.pname}
-                className="w-full h-32 object-cover mb-2"
-              />
-              <h3 className="font-semibold">{product.pname}</h3>
-              <p className="text-gray-600">₱{product.price}</p>
-              <button className="mt-2 btn-primary w-full">
-                Add to Cart
-              </button>
-            </div>
-          ))}
-        </div>
-        <button
-          onClick={onClose}
-          className="mt-4 btn-secondary w-full"
-        >
-          Continue to Dashboard
-        </button>
-      </div>
-    </div>
-  );
+  const [activeTab, setActiveTab] = useState('personalized');
+  
+return (
+<div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+<div className="bg-gradient-to-b from-[#121212] to-[#1a1a1a] rounded-xl w-full max-w-4xl h-[80vh] overflow-hidden flex flex-col">
+{/* Header and tabs */}
+<div className="p-6 flex justify-between items-center border-b border-gray-800">
+  <h2 className="text-2xl font-bold text-white">Recommended For You</h2>
+  <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">✕</button>
+</div>
+
+<div className="flex border-b border-gray-800">
+  {['personalized', 'trending', 'new'].map(tab => (
+      <button
+          key={tab}
+          onClick={() => setActiveTab(tab)}
+          className={`px-6 py-4 font-medium ${
+              activeTab === tab
+                  ? 'text-white border-b-2 border-indigo-500'
+                  : 'text-gray-400 hover:text-white'
+          }`}
+      >
+          {tab === 'personalized' && 'For You'}
+          {tab === 'trending' && 'Trending'}
+          {tab === 'new' && 'New Arrivals'}
+      </button>
+  ))}
+</div>
+
+{/* Content */}
+<div className="p-6 overflow-y-auto flex-1">
+  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {products[activeTab]?.map(product => (
+          <div key={product.product_id} className="group">
+              <div className="relative aspect-square mb-3 bg-gradient-to-br from-gray-800 to-gray-600 rounded-lg overflow-hidden shadow-lg transition-all group-hover:shadow-xl">
+                  <img 
+                      src={product.p_image} 
+                      alt={product.pname}
+                      className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <button className="absolute bottom-2 right-2 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-105">
+                      ➔
+                  </button>
+              </div>
+              <h4 className="text-white font-medium truncate">{product.pname}</h4>
+              <p className="text-gray-400 text-sm">₱{product.price}</p>
+              {activeTab === 'personalized' && (
+                  <p className="text-xs text-indigo-400">Based on your preferences</p>
+              )}
+          </div>
+      ))}
+  </div>
+</div>
+
+<div className="p-6 bg-gradient-to-t from-black to-transparent">
+  <button 
+      onClick={onClose}
+      className="w-full py-3 bg-white text-black font-bold rounded-full hover:scale-105 transition-transform"
+  >
+      Continue to Dashboard
+  </button>
+</div>
+</div>
+</div>
+);
 };
 const LoginReg = () => {
   const navigate = useNavigate();
@@ -133,11 +169,9 @@ const LoginReg = () => {
         const userId = response.data.user_id; 
         localStorage.setItem('user_id', userId);
         
-        // 1. Show recommendations before navigation
         await fetchRecommendedProducts(userId);
         setShowRecommendations(true);
         
-        // 2. Remove the navigate('/recommendations') call
         alert(response.data.message); 
         setInsertModal(false);
         fetchUsers();

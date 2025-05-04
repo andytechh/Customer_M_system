@@ -26,7 +26,7 @@ const DashboardLayout = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
+    <div className="flex flex-col min-h-screen h-screen bg-gray-100 overflow-hidden">
       {/* Header */}
       <header className="bg-white shadow p-4 flex justify-between items-center">
         <div className='flex items-center gap-4 w-full'>
@@ -61,7 +61,7 @@ const DashboardLayout = () => {
             <ul className="space-y-2">
               <NavItem to="/dashboard" icon={<LayoutGrid />} label="Dashboard" path={location.pathname} />
               <NavItem to="/customers" icon={<Users />} label="Customers" path={location.pathname} />
-              <NavItem to="/orders" icon={<ShoppingBag />} label="Orders" path={location.pathname} />
+              <NavItem to="/manage-orders" icon={<ShoppingBag />} label="Orders" path={location.pathname} />
               <NavItem to="/products" icon={<ShoppingCart />} label="Products" path={location.pathname} />
               <NavItem to="/support" icon={<CircleHelp />} label="Chat Support" path={location.pathname} />
               <NavItem to="/report-issues" icon={<MessageCircleWarning />} label="Reports" path={location.pathname} />
@@ -75,8 +75,8 @@ const DashboardLayout = () => {
         </aside>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-y-scroll h-full items-center ">
-          <main className="flex flex-col p-6 items-center overflow-hidden justify-center w-full">
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          <main className="flex-1 p-6 w-full mx-auto">
             <Outlet />
           </main>
         </div>

@@ -10,10 +10,10 @@ header('Access-Control-Allow-Credentials: true');
 $res = ['error' => false];  
 $action = $_GET['action'] ?? '';
 switch ($action) {
-  case 'viewProducts':
+case 'viewProducts':
     viewProducts();
     break;
- case 'removeFromCart':
+case 'removeFromCart':
     removeFromCart();
     break;
 case 'recommendations':
@@ -21,6 +21,12 @@ case 'recommendations':
     break;
 case 'purchase':
     Purchase();
+    break;
+case 'editorder':
+    handleEditOrder();
+    break;
+case 'addProduct':
+    addProduct();
     break;
 case 'cancel':
     cancelOrder();
@@ -31,14 +37,14 @@ case 'updateQuantity':
 case 'vieworders':
     viewOrders();
     break;
-  case 'viewcart':
+case 'viewcart':
     $res["fuch"] = true;
     viewCart();
     break;
-  case 'updateProduct':
+case 'updateProduct':
     updateProduct();
     break;
-  case 'deleteProduct':
+case 'deleteProduct':
     error_log("Received POST data: " . print_r($_POST, true));
     if (isset($_POST['productId'])) {
         deleteProductAndReorder($_POST['productId']);
@@ -48,7 +54,7 @@ case 'vieworders':
         echo json_encode($res);
     }
     break;
-  default:
+default:
     $res['error'] = true;
     $res['message'] = 'Invalid action products api...';
     echo json_encode($res);
@@ -60,139 +66,177 @@ function getRecommendations() {
     try {
         $user_id = $_GET['user_id'] ?? null;
         
-        // Basic recommendation logic (update with your actual logic)
-        $query = "SELECT * FROM products ORDER BY RAND() LIMIT 6";
-        
-        if($user_id) {
-            // Example personalized query
-            $query = "
+        // 1. Get personalized recommendations
+        $personalized = [];
+        if ($user_id) {
+            $stmt = $connect->prepare("
                 SELECT p.* 
                 FROM products p
-                LEFT JOIN orders o ON p.product_id = o.product_id
-                GROUP BY p.product_id
-                ORDER BY COUNT(o.order_id) DESC
+                JOIN user_preferences up ON p.category_id = up.category_id
+                WHERE up.user_id = ?
+                ORDER BY RAND()
                 LIMIT 6
-            ";
+            ");
+            $stmt->bind_param("i", $user_id);
+            $stmt->execute();
+            $personalized = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         }
-
-        $stmt = $connect->prepare($query);
+        
+        // 2. Get trending products (fallback)
+        $stmt = $connect->prepare("
+            SELECT p.* 
+            FROM products p
+            LEFT JOIN orders o ON p.product_id = o.product_id
+            GROUP BY p.product_id
+            ORDER BY COUNT(o.order_id) DESC
+            LIMIT 12
+        ");
         $stmt->execute();
-        $result = $stmt->get_result();
+        $trending = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         
-        $products = [];
-        while ($row = $result->fetch_assoc()) {
-            $row['p_image'] = "http://localhost/Customer_M_system/backend/uploads/" . $row['p_image'];
-            $products[] = $row;
+        // 3. Merge results (personalized first, then trending)
+        $products = array_merge($personalized, $trending);
+        $products = array_slice($products, 0, 12); // Limit to 12 items
+        
+        // Format response
+        foreach ($products as &$product) {
+            $product['p_image'] = "http://localhost/Customer_M_system/backend/uploads/" . $product['p_image'];
         }
         
-        header('Content-Type: application/json');
         echo json_encode($products);
         
     } catch (Exception $e) {
-        header('Content-Type: application/json');
-        echo json_encode([
-            'error' => false, // Maintain false to match frontend expectations
-            'message' => 'Recommendations loaded successfully',
-            'data' => []
-        ]);
+        http_response_code(500);
+        echo json_encode(['error' => $e->getMessage()]);
     }
+}
+function handleEditOrder() {
+    global $connect;
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    if (!isset($data['order_id']) || !isset($data['status'])) {
+        throw new Exception("Missing required fields: order_id and status");
+    }
+    
+    $orderId = $data['order_id'];
+    $status = $data['status'];
+    
+    $validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned', 'refunded'];
+    if (!in_array($status, $validStatuses)) {
+        throw new Exception("Invalid order status");
+    }
+    
+    $stmt = $connect->prepare("UPDATE orders SET order_status = ? WHERE order_id = ?");
+    $stmt->bind_param("si", $status, $orderId);
+    $stmt->execute();
+    
+    if ($stmt->affected_rows === 0) {
+        throw new Exception("No order found with that ID");
+    }
+    
+    return ['message' => 'Order updated successfully'];
+}
+function isValidStatusTransition($currentStatus, $newStatus) {
+    $validTransitions = [
+        'pending' => ['processing', 'cancelled'],
+        'processing' => ['shipped', 'cancelled'],
+        'shipped' => ['delivered'],
+        'delivered' => ['returned', 'refunded'],
+        'cancelled' => [],
+        'returned' => ['refunded'],
+        'refunded' => []
+    ];
+    
+    return in_array($newStatus, $validTransitions[$currentStatus] ?? []);
 }
 function cancelOrder() {
     global $connect, $res;
     $input = json_decode(file_get_contents('php://input'), true);
     
-    // Initialize debug array
-    $res['debug'] = [];
-    $res['error_steps'] = [];
-
     try {
-        // Validate input
         if (empty($input['order_id'])) {
-            $res['debug']['received_input'] = $input;
             throw new Exception("Order ID not provided");
         }
 
         $connect->begin_transaction();
-        $res['debug']['transaction_started'] = true;
 
-        // 1. Get order details
-        $stmt = $connect->prepare("SELECT product_id, quantity FROM orders WHERE order_id = ?");
+        // 1. First check the current order status
+        $stmt = $connect->prepare("SELECT order_status FROM orders WHERE order_id = ?");
         $stmt->bind_param("i", $input['order_id']);
-        
-        if (!$stmt->execute()) {
-            $res['error_steps'][] = "order_select_failed";
-            throw new Exception("Failed to find order: " . $stmt->error);
-        }
-        
+        $stmt->execute();
         $order = $stmt->get_result()->fetch_assoc();
-        $res['debug']['order_details'] = $order;
 
         if (!$order) {
-            $res['error_steps'][] = "order_not_found";
             throw new Exception("Order not found");
         }
 
-        // 2. Cancel the order
+        // 2. Validate if order can be cancelled
+        $nonCancellableStatuses = ['shipped', 'delivered'];
+        if (in_array($order['order_status'], $nonCancellableStatuses)) {
+            throw new Exception("Cannot cancel order - already " . $order['order_status']);
+        }
+
+        // 3. Proceed with cancellation if validation passes
         $stmt = $connect->prepare("
             UPDATE orders 
             SET order_status = 'cancelled' 
             WHERE order_id = ? 
-            AND order_status NOT IN ('delivered', 'shipped')
+            AND order_status NOT IN ('shipped', 'delivered')
         ");
         $stmt->bind_param("i", $input['order_id']);
         
         if (!$stmt->execute()) {
-            $res['error_steps'][] = "status_update_failed";
             throw new Exception("Status update failed: " . $stmt->error);
         }
         
-        $affected = $stmt->affected_rows;
-        $res['debug']['status_update_affected_rows'] = $affected;
-
-        if ($affected === 0) {
-            $res['error_steps'][] = "no_rows_affected";
+        if ($stmt->affected_rows === 0) {
             throw new Exception("Order cannot be cancelled - possibly already processed");
         }
 
-        // 3. Restore stock
-        $stmt = $connect->prepare("UPDATE products SET stocks = stocks + ? WHERE product_id = ?");
-        $stmt->bind_param("ii", $order['quantity'], $order['product_id']);
-        
-        if (!$stmt->execute()) {
-            $res['error_steps'][] = "stock_restore_failed";
-            throw new Exception("Stock restore failed: " . $stmt->error);
+        // 4. Restore product stock (if applicable)
+        $stmt = $connect->prepare("
+            SELECT product_id, quantity 
+            FROM orders 
+            WHERE order_id = ?
+        ");
+        $stmt->bind_param("i", $input['order_id']);
+        $stmt->execute();
+        $orderDetails = $stmt->get_result()->fetch_assoc();
+
+        if ($orderDetails) {
+            $stmt = $connect->prepare("
+                UPDATE products 
+                SET stocks = stocks + ? 
+                WHERE product_id = ?
+            ");
+            $stmt->bind_param("ii", $orderDetails['quantity'], $orderDetails['product_id']);
+            $stmt->execute();
         }
-        
-        $res['debug']['stock_update_affected'] = $stmt->affected_rows;
 
         $connect->commit();
-        $res['debug']['transaction_committed'] = true;
-        $res['message'] = "Order cancelled and stock restored";
-
+        $res['message'] = "Order cancelled successfully";
+        
     } catch (Exception $e) {
         $connect->rollback();
         $res['error'] = true;
         $res['message'] = $e->getMessage();
-        $res['debug']['error_code'] = $e->getCode();
-        $res['debug']['backtrace'] = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 5);
     }
-
-    // Log the full response for debugging
-    error_log("Cancel Order Debug: " . print_r($res, true));
+    
     echo json_encode($res);
 }
 function viewOrders() {
     global $connect;
-    $user_id = $_GET['user_id'] ?? null;
+    $requestData = $_SERVER['REQUEST_METHOD'] === 'POST' 
+        ? json_decode(file_get_contents('php://input'), true)
+        : $_GET;
+    
+    $userId = $requestData['user_id'] ?? null;
+    $isAdmin = $requestData['is_admin'] ?? false;
 
-    if (!$user_id) {
-        echo json_encode(['error' => true, 'message' => 'User ID not provided']);
-        return;
-    }
-
-    $stmt = $connect->prepare("
+    $query = "
         SELECT 
-            o.order_id, 
+            o.order_id,
+            o.user_id,
             o.quantity, 
             o.total_price, 
             o.order_date,
@@ -201,18 +245,28 @@ function viewOrders() {
             p.p_image
         FROM orders o
         JOIN products p ON o.product_id = p.product_id
-        WHERE o.user_id = ?
-    ");
-    $stmt->bind_param("i", $user_id);
+    ";
+    if (!$isAdmin) {
+        if (!$userId) {
+            echo json_encode(['error' => true, 'message' => 'User ID required for non-admin users']);
+            return;
+        }
+        $query .= " WHERE o.user_id = ?";
+    }
+    $query .= " ORDER BY o.order_date DESC";
+    $stmt = $connect->prepare($query);
+    
+    if (!$isAdmin) {
+        $stmt->bind_param("i", $userId);
+    }
     $stmt->execute();
     $result = $stmt->get_result();
+    $orders = []; 
 
-    $orders = [];
     while ($row = $result->fetch_assoc()) {
         $row['p_image'] = "http://localhost/Customer_M_system/backend/uploads/" . $row['p_image'];
         $orders[] = $row;
     }
-
     echo json_encode($orders);
 }
 function viewCart() {
@@ -548,6 +602,7 @@ function addProduct() {
     $productPrice = $_POST['price'] ?? null;
     $productStock = $_POST['stocks'] ?? null;
     $productDescription = $_POST['pdescription'] ?? null;
+    $productCategory = $_POST['pcategory'] ?? null;
     $productBrand = $_POST['brand'] ?? null;
     $productCreatedAt = $_POST['pcreated'] ?? null;
     $productImage = $_FILES['pimage'] ?? null;
@@ -555,7 +610,7 @@ function addProduct() {
     // Validate 
     if (
         empty($productName) || empty($productPrice) || empty($productStock) ||
-        empty($productDescription) || empty($productCreatedAt) || empty($productImage) || empty($productBrand)
+        empty($productDescription) || empty($productCreatedAt) || empty($productImage) || empty($productBrand)  || empty($productCategory)
     ) {
         echo json_encode(['error' => true, 'message' => 'All fields are required.']);
         return;
@@ -563,7 +618,7 @@ function addProduct() {
 
     // Validate image
     if ($productImage && $productImage['error'] === UPLOAD_ERR_OK) {
-        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         $maxFileSize = 5 * 1024 * 1024; // 5 MB
 
         if (!in_array($productImage['type'], $allowedTypes)) {
@@ -593,13 +648,13 @@ function addProduct() {
     }
 
                 
-    $query = "INSERT INTO products (pname, price, stocks, pdescription, available, brand, p_image, created_at) 
-              VALUES (?, ?, ?, ?, 1, ?, ?, ?)";
+    $query = "INSERT INTO products (pname, price, stocks, pdescription, available, brand, p_image, category, created_at) 
+              VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)";
     
     $stmt = mysqli_prepare($connect, $query);
 
     if ($stmt) {
-        mysqli_stmt_bind_param($stmt, "sddssss", $productName, $productPrice, $productStock, $productDescription, $productBrand, $fileName, $productCreatedAt);
+        mysqli_stmt_bind_param($stmt, "sddsssss", $productName, $productPrice, $productStock, $productDescription, $productBrand, $fileName, $productCategory, $productCreatedAt);
 
         if (mysqli_stmt_execute($stmt)) {
             echo json_encode(['error' => false, 'message' => 'Product added successfully.']);
@@ -629,7 +684,7 @@ function updateProduct() {
     $updateImage = false;
 
     if (!empty($_FILES['pimage']['name']) && $_FILES['pimage']['error'] === UPLOAD_ERR_OK) {
-        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         $maxFileSize = 5 * 1024 * 1024; // 5 MB
 
         if (!in_array($_FILES['pimage']['type'], $allowedTypes)) {
@@ -659,6 +714,7 @@ function updateProduct() {
         'pname' => 'pname',
         'price' => 'price',
         'pdescription' => 'pdescription',
+        'pcategory' => 'category',
         'stocks' => 'stocks',
         'brand' => 'brand'
     ];

@@ -68,6 +68,7 @@ const Products = () => {
       formDataToSend.append("stocks", formData.stocks);
       formDataToSend.append("pimage", formData.pimage);
       formDataToSend.append("brand", formData.brand);
+      formDataToSend.append("pcategory", formData.pcategory);
       formDataToSend.append("pcreated", formData.pcreated);
       
      //console.log("FormData:", formDataToSend);
@@ -79,7 +80,7 @@ const Products = () => {
         formDataToSend
       );
 
-      console.log("Backend Response:", response.data); // Debugging line
+      console.log("Backend Response:", response.data); 
       alert(response.data.message);
       setOpenModal(false);
       fetchProducts(); 
@@ -98,6 +99,7 @@ const Products = () => {
       formData.append("pdescription", editingProducts.pdescription);
       formData.append("price", editingProducts.price);
       formData.append("stocks", editingProducts.stocks);
+      formData.append("pcategory", editingProducts.category);
       formData.append("brand", editingProducts.brand);
       formData.append("pimage", editingProducts.pimage);
       const res = await axios.post("http://localhost/Customer_M_system/backend/api/products.php?action=updateProduct", formData);
@@ -161,6 +163,27 @@ const Products = () => {
             <h2 className="text-xl font-bold mb-3">Update Product</h2>
             <form onSubmit={handleUpdate} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                <div className="flex flex-col">
+                  <label htmlFor="Product Category" className="mb-1 text-sm font-medium text-gray-700">Product Category</label>
+                  <select
+                required
+                value={editingProducts.category || ""}
+                onChange={(e) => setEditingProducts({
+                    ...editingProducts,
+                    category: e.target.value
+                })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+                <option value="">Select Product Category</option>
+                <option value="laptop">Laptop</option>
+                <option value="desktop">Desktop</option>
+                <option value="tablet">Tablet</option>
+                <option value="smartphone">Smartphone</option>
+                <option value="monitor">Monitor</option>
+                <option value="accessories">Accessories</option>
+            </select>
+                </div>
                 <div className="flex flex-col">
                   <label htmlFor="Product Name" className="mb-1 text-sm font-medium text-gray-700">Product name</label>
                   <input
@@ -200,16 +223,19 @@ const Products = () => {
                   <label htmlFor="Brands" className="mb-1 text-sm font-medium text-gray-700">Brands</label>
                   <select
                     id="brand"
-                    required
+                 
                     value={editingProducts.brand}
                     onChange={(e) => setEditingProducts({ ...editingProducts, brand: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    <option value="">Select Category</option>
+                    <option value="">Select Brand</option>
                     <option value="dell"> Dell</option>
                     <option value="hp">HP</option>
                     <option value="lenovo">Lenovo</option>
-                    <option value="asus">Asus</option>
+                    <option value="realme">Realme</option>
+                    <option value="samsung">Samsung</option>
+                    <option value="infinix">Infinix</option>
+                    <option value="others">Others</option>
                   </select>
                 </div>
                 
@@ -232,7 +258,7 @@ const Products = () => {
                 <div className="flex flex-col items-start ">
                 <label htmlFor="Description" className="mb-1 text-sm font-medium text-gray-700">Product description</label>
                 <input
-                  id="pdescription" // Fixed typo here
+                  id="pdescription" 
                   type="text"
                   value={editingProducts.pdescription}
                   onChange={(e) => setEditingProducts({ ...editingProducts, pdescription: e.target.value })}
@@ -260,7 +286,20 @@ const Products = () => {
                 X
               </button>
               <h3 className="text-lg font-semibold mb-4">New Product</h3>
-              <form onSubmit={handleFormSubmit} className="space-y-4">
+              <form onSubmit={handleFormSubmit} className="space-y-4">                
+              <select
+                    required
+                    onChange={(e) => setFormData({ ...formData, pcategory: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select Product Category</option>
+                    <option value="Laptop"> Laptop</option>
+                    <option value="Desktop">Desktop</option>
+                    <option value="Tablet">Tablet</option>
+                    <option value="Smartphone">Smartphone</option>
+                    <option value="Monitor">Monitor</option>
+                    <option value="Accessories">Accessories</option>
+                  </select>
                 <input
                   type="text"
                   placeholder="Product Name"
@@ -296,11 +335,14 @@ const Products = () => {
                     onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
-                    <option value="">Select Category</option>
+                    <option value="">Select Brand</option>
                     <option value="dell"> Dell</option>
                     <option value="hp">HP</option>
                     <option value="lenovo">Lenovo</option>
-                    <option value="asus">Asus</option>
+                    <option value="realme">Realme</option>
+                    <option value="samsung">Samsung</option>
+                    <option value="infinix">Infinix</option>
+                    <option value="others">Others</option>
                   </select>
                 <input
                   type="file"
@@ -338,6 +380,7 @@ const Products = () => {
               <tr className="">
                 <th className="p-4  whitespace-nowrap">Product ID</th>
                 <th className="p-4  whitespace-nowrap">Product Name</th>
+                <th className="p-4  whitespace-nowrap">Product Category</th>
                 <th className="p-4  whitespace-nowrap">Product Brand</th>
                 <th className="p-4  whitespace-nowrap">Price</th>
                 <th className="p-4  whitespace-nowrap">Stocks</th>
@@ -351,6 +394,7 @@ const Products = () => {
                 <tr key={product.product_id} className="border-b bg-white even:bg-gray-100 text-center">
                   <td className="p-2  whitespace-nowrap">{product.product_id}</td>
                   <td className="p-2  whitespace-nowrap">{product.pname}</td>
+                  <td className="p-2  whitespace-nowrap">{product.category}</td>
                   <td className="p-2  whitespace-nowrap">{product.brand}</td>
                   <td className="p-2  whitespace-nowrap">₱{product.price}</td>
                   <td className="p-2  whitespace-nowrap">{product.stocks}</td>

@@ -17,9 +17,6 @@ switch ($action) {
   case 'addtocart':
     addToCart();
     break;
-  case 'cancel':
-    cancelOrder();
-    break;
   case 'viewOrders':
     viewOrders();
     break;
@@ -42,62 +39,7 @@ switch ($action) {
     echo json_encode($res);
     break;
 } 
-function cancelOrder() {
-  global $connect, $res;
-  $input = json_decode(file_get_contents('php://input'), true);
-  
-  try {
-      $connect->begin_transaction(); // Start transaction
 
-      // 1. Get order details first
-      $stmt = $connect->prepare("
-          SELECT product_id, quantity 
-          FROM orders 
-          WHERE order_id = ?
-      ");
-      $stmt->bind_param("i", $input['order_id']);
-      $stmt->execute();
-      $order = $stmt->get_result()->fetch_assoc();
-
-      if (!$order) {
-          throw new Exception("Order not found");
-      }
-
-      // 2. Cancel the order
-      $stmt = $connect->prepare("
-          UPDATE orders 
-          SET order_status = 'cancelled' 
-          WHERE order_id = ? 
-          AND order_status NOT IN ('delivered', 'shipped')
-      ");
-      $stmt->bind_param("i", $input['order_id']);
-      $stmt->execute();
-
-      if ($stmt->affected_rows === 0) {
-          throw new Exception("Order cannot be cancelled at this stage");
-      }
-
-      // 3. Restore stock quantity
-      $stmt = $connect->prepare("
-          UPDATE products 
-          SET stock_quantity = stock_quantity + ? 
-          WHERE product_id = ?
-      ");
-      $stmt->bind_param("ii", $order['quantity'], $order['product_id']);
-      $stmt->execute();
-
-      $connect->commit(); // Commit if all succeed
-      $res['message'] = "Order cancelled and stock restored";
-      
-  } catch (Exception $e) {
-      $connect->rollback(); // Rollback on error
-      http_response_code(400);
-      $res['error'] = true;
-      $res['message'] = $e->getMessage();
-  }
-  
-  echo json_encode($res);
-}
 function deleteProductAndReorder($productId) {
   global $connect, $res;
   try {

@@ -370,13 +370,14 @@ function register() {
     $uemail = $data['uemail'] ?? null;
     $uaddress = $data['uaddress'] ?? null; 
     $upassword = $data['upassword'] ?? null;
+
     $ucreated_at = $data['ucreated'] ?? date('Y-m-d H:i:s'); 
 
-    if (!$username || !$uemail || !$upassword) {
+    if (!$username || !$uemail || !$upassword ) {
         echo json_encode(['type' => 'error', 'message' => 'Missing required fields']);
         return;
     }
-
+  
     $hashedPassword = password_hash($upassword, PASSWORD_DEFAULT);
 
     $nextId = getNextAvailableId($connect);

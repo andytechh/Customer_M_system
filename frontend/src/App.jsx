@@ -8,7 +8,7 @@ import Features from './components/landing/Features'
 import Pricing from './components/landing/Pricing'
 import Dashboard from './components/Dashboard'
 import DashboardLayout from './Layout/Dashboard_Layout'
-import Orders from './components/Admin/Orders'
+import Orders from './components/Customer/Orders'
 import Customers from './components/Admin/Customers'
 import Reports from './components/Admin/Reports'
 import Settings from './components/Admin/Settings'
@@ -17,6 +17,7 @@ import Profile from './components/Customer/Profile'
 import Supports from './components/Admin/Supports'
 import Users from './components/Admin/Users'
 import Ai_recommendations from './components/Customer/Ai_recommendations'
+import OrdersManagement from './components/Admin/OrdersManagement'
 import SupportTickets from './components/Customer/SupportTickets'
 import ChatSupport from './components/Customer/ChatSupport'
 import CTA from './components/landing/CTA'
@@ -46,6 +47,7 @@ const App = () => {
   <Route path="/admin-dashboard" element={<Dashboard />} />
   <Route path="/users/:user_Id" element={<Users/>}/>
   <Route path="/customers" element={<Customers />} />
+  <Route path="/manage-orders" element={<OrdersManagement />} />
   <Route path="/products" element={<Products />} />
   <Route path="/reports" element={<Reports />} />
   <Route path="/Settings" element={<Settings />} />

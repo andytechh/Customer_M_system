@@ -156,6 +156,34 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+/* Smooth scrolling for recommendation container */
+.recommendation-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #535353 #121212;
+}
+
+.recommendation-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.recommendation-scroll::-webkit-scrollbar-track {
+  background: #121212;
+}
+
+.recommendation-scroll::-webkit-scrollbar-thumb {
+  background-color: #535353;
+  border-radius: 4px;
+}
+
+/* Card hover effects */
+.product-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
 
 @layer components {
   .btn-primary {
