@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -102,19 +102,48 @@ const LoginReg = () => {
     setInsertModal(true);
     setFormData({});
   };
+const fetchRecommendedProducts = async (userId) => {
+  try {
+    setLoadingRecommendations(true);
+    const response = await axios.get(`${apiURL2}recommendations`, {
+      params: { user_id: userId }
+    });
 
-  const fetchRecommendedProducts = async (userId) => {
-    try {
-      console.log('Fetching recommendations for user:', userId);
-      const response = await axios.get(`${apiURL2}recommendations`, {
-        params: { user_id: userId }
-      });
-      console.log('Recommendations response:', response.data);
-      setRecommendedProducts(response.data);
-    } catch (error) {
-      console.error('Error fetching recommendations:', error);
+    // Handle API errors
+    if (response.data.error) {
+      console.error('Recommendation Error:', response.data);
+      return;
     }
-  };
+
+    // Transform data structure
+    const formattedData = {
+      personalized: response.data.personalized?.map(p => ({
+        ...p,
+        // Ensure correct image URL
+        p_image: p.p_image?.startsWith('http') ? p.p_image : `${apiURL2}uploads/${p.p_image}`
+      })) || [],
+      
+      trending: response.data.trending?.map(p => ({
+        ...p,
+        p_image: p.p_image?.startsWith('http') ? p.p_image : `${apiURL2}uploads/${p.p_image}`
+      })) || [],
+      
+      new: response.data.new?.map(p => ({
+        ...p,
+        p_image: p.p_image?.startsWith('http') ? p.p_image : `${apiURL2}uploads/${p.p_image}`
+      })) || []
+    };
+
+    setRecommendedProducts(formattedData);
+    setShowRecommendations(true);
+
+  } catch (error) {
+    console.error('Fetch Error:', error);
+    alert('Error loading recommendations. Please try again later.');
+  } finally {
+    setLoadingRecommendations(false);
+  }
+};
 
   const handleInsertChange = (e) => {
     const { name, value } = e.target;
@@ -331,6 +360,5 @@ const LoginReg = () => {
 
   );
 };
-
 
 export default LoginReg;

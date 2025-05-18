@@ -60,50 +60,41 @@ default:
     echo json_encode($res);
     break;
 }
+
 function getRecommendations() {
     global $connect;
+    $defaultCategory = 'Desktop';
     
     try {
-        $user_id = $_GET['user_id'] ?? null;
-        
-        // 1. Get personalized recommendations
-        $personalized = [];
-        if ($user_id) {
-            $stmt = $connect->prepare("
-                SELECT p.* 
-                FROM products p
-                JOIN user_preferences up ON p.category_id = up.category_id
-                WHERE up.user_id = ?
-                ORDER BY RAND()
-                LIMIT 6
-            ");
-            $stmt->bind_param("i", $user_id);
-            $stmt->execute();
-            $personalized = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        }
-        
-        // 2. Get trending products (fallback)
         $stmt = $connect->prepare("
-            SELECT p.* 
-            FROM products p
-            LEFT JOIN orders o ON p.product_id = o.product_id
-            GROUP BY p.product_id
-            ORDER BY COUNT(o.order_id) DESC
-            LIMIT 12
+            SELECT *, 'personalized' AS recommendation_type 
+            FROM products 
+            WHERE category = ?
+            ORDER BY created_at DESC 
+            LIMIT 6
         ");
+        $stmt->bind_param('s', $defaultCategory);
         $stmt->execute();
-        $trending = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $result = $stmt->get_result();
         
-        // 3. Merge results (personalized first, then trending)
-        $products = array_merge($personalized, $trending);
-        $products = array_slice($products, 0, 12); // Limit to 12 items
-        
-        // Format response
-        foreach ($products as &$product) {
-            $product['p_image'] = "http://localhost/Customer_M_system/backend/uploads/" . $product['p_image'];
+        $products = [];
+        while ($row = $result->fetch_assoc()) {
+            // Check if image is BLOB or filename
+            if (is_resource($row['p_image'])) {
+                // Handle BLOB data
+                $row['p_image'] = "data:image/jpeg;base64,".base64_encode(stream_get_contents($row['p_image']));
+            } else {
+                // Handle filename
+                $row['p_image'] = "http://localhost/Customer_M_system/backend/uploads/" . $row['p_image'];
+            }
+            $products[] = $row;
         }
         
-        echo json_encode($products);
+        echo json_encode([
+            'personalized' => $products,
+            'trending' => [],
+            'new' => []
+        ]);
         
     } catch (Exception $e) {
         http_response_code(500);
@@ -159,8 +150,6 @@ function cancelOrder() {
         }
 
         $connect->begin_transaction();
-
-        // 1. First check the current order status
         $stmt = $connect->prepare("SELECT order_status FROM orders WHERE order_id = ?");
         $stmt->bind_param("i", $input['order_id']);
         $stmt->execute();
@@ -169,14 +158,10 @@ function cancelOrder() {
         if (!$order) {
             throw new Exception("Order not found");
         }
-
-        // 2. Validate if order can be cancelled
         $nonCancellableStatuses = ['shipped', 'delivered'];
         if (in_array($order['order_status'], $nonCancellableStatuses)) {
             throw new Exception("Cannot cancel order - already " . $order['order_status']);
         }
-
-        // 3. Proceed with cancellation if validation passes
         $stmt = $connect->prepare("
             UPDATE orders 
             SET order_status = 'cancelled' 
@@ -193,7 +178,7 @@ function cancelOrder() {
             throw new Exception("Order cannot be cancelled - possibly already processed");
         }
 
-        // 4. Restore product stock (if applicable)
+        // Restore product stock 
         $stmt = $connect->prepare("
             SELECT product_id, quantity 
             FROM orders 
@@ -326,7 +311,7 @@ function getProductPrice($connect, $product_id) {
     try {
         $connect->begin_transaction();
 
-        // 1. Get cart item with product details
+        //Get cart item 
         $stmt = $connect->prepare("
             SELECT ci.*, p.stocks, p.price, p.pname
             FROM cart_items ci
@@ -341,18 +326,15 @@ function getProductPrice($connect, $product_id) {
             throw new Exception("Cart item not found");
         }
 
-        // 2. Verify stock availability (corrected column name)
+        // stock availability 
         if ($cartItem['stocks'] < $cartItem['quantity']) {
             throw new Exception("Not enough stock for product: {$cartItem['pname']}");
         }
 
-        // 3. Calculate total price (use direct price from query)
         $total_price = $cartItem['quantity'] * $cartItem['price'];
         if ($total_price <= 0) {
             throw new Exception("Invalid total price calculated");
         }
-
-        // 4. Create order record (include product name)
         $stmt = $connect->prepare("
             INSERT INTO orders 
                 (user_id, product_id, product_name, quantity, total_price, order_date) 
@@ -368,7 +350,7 @@ function getProductPrice($connect, $product_id) {
         );
         $stmt->execute();
 
-        // 5. Update product stock
+        // update product stock
         $stmt = $connect->prepare("
             UPDATE products 
             SET stocks = stocks - ? 
@@ -380,7 +362,7 @@ function getProductPrice($connect, $product_id) {
         );
         $stmt->execute();
 
-        // 6. Remove from cart
+        // del
         $stmt = $connect->prepare("DELETE FROM cart_items WHERE cart_id = ?");
         $stmt->bind_param("i", $cart_id);
         $stmt->execute();
@@ -391,7 +373,7 @@ function getProductPrice($connect, $product_id) {
         $connect->rollback();
         $res['error'] = true;
         $res['message'] = $e->getMessage();
-        error_log("Purchase Error: " . $e->getMessage()); // Add error logging
+        error_log("Purchase Error: " . $e->getMessage()); 
     }
 
     echo json_encode($res);

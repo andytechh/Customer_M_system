@@ -64,7 +64,7 @@ const DashboardLayout = () => {
               <NavItem to="/manage-orders" icon={<ShoppingBag />} label="Orders" path={location.pathname} />
               <NavItem to="/products" icon={<ShoppingCart />} label="Products" path={location.pathname} />
               <NavItem to="/support" icon={<CircleHelp />} label="Chat Support" path={location.pathname} />
-              <NavItem to="/report-issues" icon={<MessageCircleWarning />} label="Reports" path={location.pathname} />
+              <NavItem to="/reports" icon={<MessageCircleWarning />} label="Reports" path={location.pathname} />
               <NavItem to="/settings" icon={<Settings />} label="Settings" path={location.pathname} />
             </ul>
             <div className="mt-6 border-t pt-4">

@@ -4,92 +4,92 @@ import axios from 'axios';
 const apiURL = "http://localhost/Customer_M_system/backend/api/products.php?action=";
 
 const OrdersManagement = () => {
-    const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [editingOrder, setEditingOrder] = useState(null);
-    const [editModal, setEditModal] = useState(false);
+const [orders, setOrders] = useState([]);
+const [loading, setLoading] = useState(true);
+const [editingOrder, setEditingOrder] = useState(null);
+const [editModal, setEditModal] = useState(false);
 
-    useEffect(() => {
-        fetchOrders();
-    }, []);
+useEffect(() => {
+fetchOrders();
+}, []);
 
-    const fetchOrders = async () => {
-        try {
-            const userId = localStorage.getItem('user_id');
-            const isAdmin = localStorage.getItem('is_admin') === 'true';
-            
-            const res = await axios.get(`${apiURL}vieworders`, {
-                params: {
-                    user_id: isAdmin ? null : userId,
-                    is_admin: isAdmin
-                }
-            });
-
-            if (Array.isArray(res.data)) {
-                setOrders(res.data);
-            } else {
-                console.error("Unexpected response format:", res.data);
-                setOrders([]);
-            }
-        } catch (error) {
-            console.error("Failed to fetch orders:", error);
-            setOrders([]);
-        } finally {
-            setLoading(false);
+const fetchOrders = async () => {
+try {
+    const userId = localStorage.getItem('user_id');
+    const isAdmin = localStorage.getItem('is_admin') === 'true';
+    
+    const res = await axios.get(`${apiURL}vieworders`, {
+        params: {
+            user_id: isAdmin ? null : userId,
+            is_admin: isAdmin
         }
-    };
+    });
 
-    const handleEditSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await axios.post(`${apiURL}editorder`, {
-                order_id: editingOrder.order_id,
-                status: editingOrder.status
-            });
-            
-            if (!res.data.error) {
-                alert("Order updated successfully!");
-                fetchOrders();
-                setEditModal(false);
-            } else {
-                alert(res.data.message || "Failed to update order");
-            }
-        } catch (error) {
-            console.error("Error updating order:", error);
-            alert(error.response?.data?.message || "Failed to update order");
-        }
-    };
-
-    const cancelOrder = async (orderId, currentStatus) => {
-        // Check status before showing confirmation
-        const nonCancellableStatuses = ['shipped', 'delivered'];
-        if (nonCancellableStatuses.includes(currentStatus)) {
-          alert(`Cannot cancel order - already ${currentStatus}`);
-          return;
-        }
-      
-        if (window.confirm("Are you sure you want to cancel this order?")) {
-          try {
-            const res = await axios.post(`${apiURL}cancel`, {
-              order_id: orderId
-            });
-            
-            if (!res.data.error) {
-              alert(res.data.message || "Order cancelled successfully!");
-              fetchOrders();
-            } else {
-              alert(res.data.message || "Failed to cancel order");
-            }
-          } catch (error) {
-            console.error("Error cancelling order:", error);
-            alert(error.response?.data?.message || "Failed to cancel order");
-          }
-        }
-      };
-
-    if (loading) {
-        return <div className="text-center py-10">Loading orders...</div>;
+    if (Array.isArray(res.data)) {
+        setOrders(res.data);
+    } else {
+        console.error("Unexpected response format:", res.data);
+        setOrders([]);
     }
+} catch (error) {
+    console.error("Failed to fetch orders:", error);
+    setOrders([]);
+} finally {
+    setLoading(false);
+}
+};
+
+const handleEditSubmit = async (e) => {
+e.preventDefault();
+try {
+    const res = await axios.post(`${apiURL}editorder`, {
+        order_id: editingOrder.order_id,
+        status: editingOrder.status
+    });
+    
+    if (!res.data.error) {
+        alert("Order updated successfully!");
+        fetchOrders();
+        setEditModal(false);
+    } else {
+        alert(res.data.message || "Failed to update order");
+    }
+} catch (error) {
+    console.error("Error updating order:", error);
+    alert(error.response?.data?.message || "Failed to update order");
+}
+};
+
+const cancelOrder = async (orderId, currentStatus) => {
+// Check status before showing confirmation
+const nonCancellableStatuses = ['shipped', 'delivered'];
+if (nonCancellableStatuses.includes(currentStatus)) {
+    alert(`Cannot cancel order - already ${currentStatus}`);
+    return;
+}
+
+if (window.confirm("Are you sure you want to cancel this order?")) {
+    try {
+    const res = await axios.post(`${apiURL}cancel`, {
+        order_id: orderId
+    });
+    
+    if (!res.data.error) {
+        alert(res.data.message || "Order cancelled successfully!");
+        fetchOrders();
+    } else {
+        alert(res.data.message || "Failed to cancel order");
+    }
+    } catch (error) {
+    console.error("Error cancelling order:", error);
+    alert(error.response?.data?.message || "Failed to cancel order");
+    }
+}
+};
+
+if (loading) {
+return <div className="text-center py-10">Loading orders...</div>;
+}
 
 return (
 <div className="overflow-x-auto bg-gray-300 rounded-lg shadow-md w-full max-h-[650px] mt-10">
@@ -175,17 +175,17 @@ orders.map((order) => (
 </td>
 <td className="p-4 border-b text-center">
     <span
-        className={`px-3 py-1 rounded-full text-white text-center text-xs ${
-            order.order_status === 'delivered'
-                ? 'bg-green-500'
-                : order.order_status === 'shipped'
-                ? 'bg-blue-500'
-                : order.order_status === 'cancelled' || order.order_status === 'returned' || order.order_status === 'refunded'
-                ? 'bg-red-500'
-                : 'bg-yellow-500'
-        }`}
+    className={`px-3 py-1 rounded-full text-white text-center text-xs ${
+        order.order_status === 'delivered'
+            ? 'bg-green-500'
+            : order.order_status === 'shipped'
+            ? 'bg-blue-500'
+            : order.order_status === 'cancelled' || order.order_status === 'returned' || order.order_status === 'refunded'
+            ? 'bg-red-500'
+            : 'bg-yellow-500'
+    }`}
     >
-        {order.order_status || 'Pending'}
+     {order.order_status || 'Pending'}
     </span>
 </td>
 <td className="p-4 border-b text-center">
@@ -212,11 +212,11 @@ orders.map((order) => (
 </tr>
 ))
 ) : (
-        <tr>
-            <td colSpan="9" className="text-center p-4 text-gray-600">
-                No orders found.
-            </td>
-        </tr>
+    <tr>
+        <td colSpan="9" className="text-center p-4 text-gray-600">
+            No orders found.
+        </td>
+    </tr>
     )}
 </tbody>
 </table>

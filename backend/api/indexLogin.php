@@ -11,7 +11,6 @@ $res = ['error' => false];
 $action = $_GET['action'] ?? '';
 
 switch ($action) {
-
     case 'view':
         view();
         break;
@@ -23,6 +22,9 @@ switch ($action) {
     case 'viewUser':
         testUser();
         break;
+    case 'create_ticket':
+    createTicket();
+    break;
     case 'login':
         login();
         break;
@@ -54,29 +56,29 @@ function getRecommendations() {
     
     $user_id = $_GET['user_id'] ?? null;
     
-    try {
+     try {
+        $defaultCategory = 'Desktop';
+        
         $query = "
-            SELECT * FROM products 
-            ORDER BY RAND() 
+            SELECT * 
+            FROM products 
+            WHERE category = ?
+            ORDER BY created_at DESC 
             LIMIT 6
         ";
         
-        if ($user_id) {
-            // Add personalized logic based on user data
-            // Example: Get products from same category as previous purchases
-        }
-
         $stmt = $connect->prepare($query);
+        $stmt->bind_param('s', $defaultCategory);
         $stmt->execute();
         $result = $stmt->get_result();
         
         $products = [];
         while ($row = $result->fetch_assoc()) {
-            $row['image'] = "http://localhost/Customer_M_system/backend/uploads/" . $row['p_image'];
+            $row['p_image'] = "http://localhost/Customer_M_system/backend/uploads/" . $row['p_image'];
             $products[] = $row;
         }
         
-        echo json_encode($products);
+        echo json_encode(['personalized' => $products]);
         
     } catch (Exception $e) {
         http_response_code(500);
