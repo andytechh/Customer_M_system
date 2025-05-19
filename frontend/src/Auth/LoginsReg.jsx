@@ -108,14 +108,10 @@ const fetchRecommendedProducts = async (userId) => {
     const response = await axios.get(`${apiURL2}recommendations`, {
       params: { user_id: userId }
     });
-
-    // Handle API errors
     if (response.data.error) {
       console.error('Recommendation Error:', response.data);
       return;
     }
-
-    // Transform data structure
     const formattedData = {
       personalized: response.data.personalized?.map(p => ({
         ...p,
@@ -166,7 +162,7 @@ const fetchRecommendedProducts = async (userId) => {
       if (!response.data.error) {
         const { user_id, role } = response.data.user;
         localStorage.setItem('user_id', user_id);
-  
+        localStorage.setItem('is_admin', role === 'admin' ? 'true' : 'false');
         alert('Login successful!');
         setInsertModal(false);
   
@@ -197,7 +193,7 @@ const fetchRecommendedProducts = async (userId) => {
       if (response.data.type === 'success') {
         const userId = response.data.user_id; 
         localStorage.setItem('user_id', userId);
-        
+         localStorage.setItem('is_admin', 'false'); 
         await fetchRecommendedProducts(userId);
         setShowRecommendations(true);
         

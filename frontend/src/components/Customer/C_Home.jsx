@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
   Carousel,
@@ -13,6 +14,8 @@ import { Heart, ShoppingCart } from 'lucide-react';
 
 const apiURL = "http://localhost/Customer_M_system/backend/api/products.php?action=";
 const apiURL2 = "http://localhost/Customer_M_system/backend/api/orders.php?action=";
+const apiURL3 = "http://localhost/Customer_M_system/backend/api/recommendations.php?action=";
+
 const WishlistButton = ({ productId, isLiked, onToggle }) => {
   return (
     <button
@@ -32,156 +35,247 @@ const WishlistButton = ({ productId, isLiked, onToggle }) => {
 };
 
 const C_Home = () => {
+  const location = useLocation();
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [wishlist, setWishlist] = useState([]);
-  const [user_Id, setUser_Id] = useState(null);
+  const [carouselProducts, setCarouselProducts] = useState([]);
+
+  // Get search query from URL
+  const searchParams = new URLSearchParams(location.search);
+  const searchQuery = searchParams.get('search') || '';
 
   useEffect(() => {
-
-    fetchProducts();
-    const userId = localStorage.getItem('userId');
-    setUser_Id(userId);
-  }, []);
-
-  const fetchProducts = async () => {
-    try {
-      const response = await axios.get(`${apiURL}viewProducts`);
-      if (!response.data.error && Array.isArray(response.data)) {
-        setProducts(response.data);
-      } else {
-        alert(response.data.message || "No products found");
+    const fetchData = async () => {
+      const userId = localStorage.getItem('user_id');
+      if (!userId) {
+        setError("Authentication required");
+        return;
       }
-    } catch(error) {
-      console.error("Error fetching products: ", error);
-    } finally {
-      setLoading(false);
-    }
+
+      try {
+        // Fetch all products
+        const [productsRes, recRes] = await Promise.all([
+          axios.get(`${apiURL}viewProducts`),
+          axios.get(`${apiURL3}getRecommendations`, {
+            params: { user_id: userId }
+          })
+        ]);
+
+        if (!productsRes.data?.error) {
+          setProducts(productsRes.data);
+          filterProducts(productsRes.data);
+        }
+
+        // Handle recommendations
+        let recommendations = [];
+        if (recRes.data?.personalized) {
+          recommendations = recRes.data.personalized;
+        }
+
+        // Handle carousel products
+        let carouselItems = [];
+        if (location.state?.recommendedProducts) {
+          carouselItems = location.state.recommendedProducts;
+        } else if (location.state?.selectedCategory) {
+          const categoryRes = await axios.get(`${apiURL}fetchByCategory`, {
+            params: { category: location.state.selectedCategory }
+          });
+          carouselItems = categoryRes.data;
+        } else {
+          carouselItems = recommendations;
+        }
+
+        // Fallback to random products if needed
+        if (carouselItems.length < 4) {
+          const randomRes = await axios.get(`${apiURL}fetchRandom`, {
+            params: { limit: 4 - carouselItems.length }
+          });
+          carouselItems = [...carouselItems, ...randomRes.data];
+        }
+
+        setCarouselProducts(carouselItems.slice(0, 4));
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to load products");
+        console.error("Fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [location.state]);
+
+  useEffect(() => {
+    filterProducts(products);
+  }, [searchQuery, products]);
+
+  const filterProducts = (productsArray) => {
+    const filtered = productsArray.filter(product => {
+      const query = searchQuery.toLowerCase();
+      return (
+        product.pname.toLowerCase().includes(query) ||
+        (product.brand?.toLowerCase().includes(query)) ||
+        (product.description?.toLowerCase().includes(query))
+      );
+    });
+    setFilteredProducts(filtered);
   };
+
+  const constructImageUrl = (p_image) => {
+    if (!p_image) return '/placeholder-product.jpg';
+    if (p_image.startsWith('data:image/')) return p_image;
+    if (p_image.includes('http')) return p_image;
+    return `http://localhost/Customer_M_system/backend/uploads/${p_image}`;
+  };
+
   const addToCart = async (productId) => {
     const userId = localStorage.getItem('user_id');
     if (!userId) {
-      alert("You're not logged in. Please log in first.");
+      alert("Please log in to add items to cart");
       return;
     }
-  
+
     try {
       const formData = new FormData();
-      //console.log("working here");
       formData.append('action', 'addtocart');
-      //console.log("fuck up here");
       formData.append('product_id', productId);
       formData.append('quantity', 1);
       formData.append('variation', 'standard');
       formData.append('user_id', userId);
-  
-      const response = await axios.post(`${apiURL2}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+
+      const response = await axios.post(apiURL2, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-  
+
       if (response.data.error) {
-        alert(`Error: ${response.data.message}`);
-      } else {
-        alert('Product added to cart successfully!');
+        throw new Error(response.data.message);
       }
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      alert('An error occurred while adding to cart.');
+      alert('Product added to cart!');
+    } catch (err) {
+      alert(err.message || 'Failed to add to cart');
+      console.error('Cart error:', err);
     }
   };
-  
-  
+
   const toggleWishlist = (productId) => {
-    setWishlist(prev => {
-      if (prev.includes(productId)) {
-        return prev.filter(id => id !== productId);
-      } else {
-        return [...prev, productId];
-      }
-    });
+    setWishlist(prev => 
+      prev.includes(productId)
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
   };
 
-  if (loading) return <p className="text-center text-gray-600">Loading Products...</p>;
+  if (loading) return (
+    <div className="text-center py-20">
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 bg-gray-200 rounded w-1/4 mx-auto"></div>
+        <div className="h-64 bg-gray-200 rounded-lg"></div>
+      </div>
+    </div>
+  );
 
-return (
-<div>
-<section id="features" className="py-20 from-blue-100 to-indigo-50 bg-gradient-to-br">
-  <div className="container mx-auto px-4">
-    <div className="flex items-center mb-16 w-full justify-center">
-      <Carousel className="w-full max-w-300 h-150">
-        <CarouselContent>
-          {products.slice(0, 5).map((product) => (
-            <CarouselItem key={product.product_id}>
-              <div className="p-1">
-                <Card className='w-300 h-150'>
-                  <CardContent className="flex items-center justify-center p-6 ">
-                    <div className="max-w-full w-full max-h-full h-120">
-                      <img
-                        src={`http://localhost/Customer_M_system/backend/uploads/${product.p_image}`} 
-                        alt={product.pname} 
-                        className="w-full h-full rounded-lg object-cover"
-                      />
-                      <div className="flex items-center gap-10">  
-                        <h4 className="text-2xl font-bold mb-2 py-2">{product.pname}</h4>
-                        <p className="text-gray-900 font-bold text-2xl">₱{product.price}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+  if (error) return (
+    <div className="text-center py-20 text-red-500">
+      <p>Error: {error}</p>
+      <button 
+        onClick={() => window.location.reload()}
+        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+      >
+        Try Again
+      </button>
+    </div>
+  );
+
+  return (
+<div className="flex h-[700px] max-w-7xl mx-auto border shadow-lg bg-white mt-8 font-sans py-10 from-blue-100 to-indigo-50 bg-gradient-to-br rounded-2xl">
+ 
+<section className="py-20 from-blue-100 to-indigo-50 bg-gradient-to-br w-full">
+<div className="container mx-auto px-4">
+  <div className="mb-16">
+    <Carousel className="w-full max-w-400 h-150">
+      <CarouselContent>
+        {carouselProducts.map((product) => (
+          <CarouselItem key={product.product_id}>
+            <div className="p-1 h-[500px] flex justify-center items-center">
+              <Card className="max-h-full h-[500px] w-full max-w-5xl flex flex-row bg-white shadow-md rounded-lg overflow-hidden">
+                <CardContent className="flex flex-col h-full p-6 w-full">
+                  <div className="flex-1 flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden mb-4">
+                <img
+                  src={constructImageUrl(product.p_image)}
+                  alt={product.pname}
+                  className="max-w-full max-h-[300px] object-contain p-4"
+                  onError={(e) => {
+                    e.target.src = '/placeholder-product.jpg';
+                    e.target.classList.add('object-contain', 'p-4');}} />
               </div>
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-        <CarouselPrevious />
-        <CarouselNext />
-      </Carousel>
+              <div className="text-center mt-auto">
+                <h4 className="text-xl font-bold truncate">{product.pname}</h4>
+                <p className="text-gray-900 font-bold text-lg mt-2">
+                  ₱{parseFloat(product.price).toFixed(2)}
+                </p>
+              </div>
+                </CardContent>
+              </Card>
+            </div>
+          </CarouselItem>
+        ))}
+      </CarouselContent>
+      <CarouselPrevious />
+      <CarouselNext />
+    </Carousel>
     </div>
+ <h3 className="text-2xl font-bold py-10">Featured Products</h3>
 
-<h3 className="text-2xl font-bold py-10">Featured Products</h3>  
-
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full">
-  {products.map((product) => (
-    <div key={product.product_id} className="feature-card flex flex-col py-5 px-5">
-      <div className="flex w-full items-center py-1 justify-end">
-        <WishlistButton 
-          productId={product.product_id}
-          isLiked={wishlist.includes(product.product_id)}
-          onToggle={toggleWishlist}
-        />
-      </div>
-      
-      <div className="max-w-full w-full max-h-full h-80">
-        <img
-          src={`http://localhost/Customer_M_system/backend/uploads/${product.p_image}`} 
-          alt={product.pname} 
-          className="w-full h-full rounded-lg object-cover"
-        />
-      </div>
-
-      <h3 className="text-3xl font-bold mb-2 py-2">{product.pname}</h3>
-      <p className="text-gray-600">{product.brand}</p>
-      <Rating value={4.0} readOnly precision={0.5} />
-
-      <div className='flex flex-row items-center mt-10 w-full justify-between'>
-        <div>
-          <p className="text-gray-900 font-bold text-2xl">₱{product.price}</p>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full">
+      {filteredProducts.length === 0 ? (
+        <div className="col-span-full text-center py-8 text-gray-500">
+          No products found matching your search.
         </div>
-        <button
-          onClick={() => addToCart(product.product_id)}
-          className='btn-secondary flex shadow-lg w-1/3 py-2 gap-1'
-        >
-          <ShoppingCart/> Add
-        </button>
-      </div>
+      ) : (
+        filteredProducts.map((product) => (
+          <div key={product.product_id} className="feature-card flex flex-col py-5 px-5">
+            <div className="flex w-full items-center py-1 justify-end">
+              <WishlistButton 
+                productId={product.product_id}
+                isLiked={wishlist.includes(product.product_id)}
+                onToggle={toggleWishlist}
+              />
+            </div>
+            
+            <div className="max-w-full w-full max-h-full h-80">
+              <img
+                src={constructImageUrl(product.p_image)}
+                alt={product.pname} 
+                className="w-full h-full rounded-lg object-cover"
+              />
+            </div>
+
+            <h3 className="text-3xl font-bold mb-2 py-2">{product.pname}</h3>
+            <p className="text-gray-600">{product.brand}</p>
+            <Rating value={4.0} readOnly precision={0.5} />
+
+            <div className='flex items-center mt-10 justify-between'>
+              <p className="text-gray-900 font-bold text-2xl">
+                ₱{parseFloat(product.price).toFixed(2)}
+              </p>
+              <button
+                onClick={() => addToCart(product.product_id)}
+                className='btn-secondary flex shadow-lg py-2 gap-1'
+              >
+                <ShoppingCart/> Add
+              </button>
+            </div>
+          </div>
+        ))
+      )}
     </div>
-  ))}
-</div>
   </div>
 </section>
 </div>
-  );
+);
 };
 
 export default C_Home;

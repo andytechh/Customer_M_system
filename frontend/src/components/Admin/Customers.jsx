@@ -135,26 +135,6 @@ return (
 />
 </div>
 
-{/* Add Customer Modal
-{openModal && (
-<div className="fixed inset-0 bg-gray-400 bg-opacity-50 flex justify-center items-center z-50">
-  <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-lg relative">
-    <button onClick={() => setOpenModal(false)} className="absolute top-2 right-2 text-gray-500 hover:text-[#1CB5E0] p-3 mr-2">
-      X
-    </button>
-    <h3 className="text-lg font-semibold mb-4">New Customer</h3>
-    <form onSubmit={handleFormSubmit} className="space-y-4">
-      <input type="text" placeholder="Name" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" onChange={e => setFormData({ ...formData, uname: e.target.value })} />
-      <input type="text" placeholder="Username" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" onChange={e => setFormData({ ...formData, username: e.target.value })} />
-      <input type="text" placeholder="Email" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" onChange={e => setFormData({ ...formData, uemail: e.target.value })} />
-      <input type="text" placeholder="Address" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" onChange={e => setFormData({ ...formData, uaddress: e.target.value })} />
-      <input type="password" placeholder="Password" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" onChange={e => setFormData({ ...formData, upassword: e.target.value })} />
-      <input type="datetime-local" required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" onChange={e => setFormData({ ...formData, ucreated: e.target.value })} />
-      <button type="submit" className="w-full px-6 py-3 btn-secondary">Submit</button>
-    </form>
-  </div>
-</div>
-)} */}
 
 {/* Edit Customer Modal */}
 {editModal && editingCustomer && (

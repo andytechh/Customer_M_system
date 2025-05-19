@@ -19,6 +19,12 @@ case 'removeFromCart':
 case 'recommendations':
     getRecommendations();
     break;
+case 'fetchByCategory':
+    fetchByCategory();
+    break;
+case 'fetchRandom':
+    fetchRandom();
+    break;
 case 'purchase':
     Purchase();
     break;
@@ -60,47 +66,95 @@ default:
     echo json_encode($res);
     break;
 }
-
-function getRecommendations() {
+function fetchByCategory() {
     global $connect;
-    $defaultCategory = 'Desktop';
+    $category = $_GET['category'] ?? '';
+    $stmt = $connect->prepare("SELECT * FROM products WHERE category = ?");
+    $stmt->bind_param("s", $category);
+    $stmt->execute();
+    $result = $stmt->get_result();
     
-    try {
-        $stmt = $connect->prepare("
-            SELECT *, 'personalized' AS recommendation_type 
-            FROM products 
-            WHERE category = ?
-            ORDER BY created_at DESC 
-            LIMIT 6
-        ");
-        $stmt->bind_param('s', $defaultCategory);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        $products = [];
-        while ($row = $result->fetch_assoc()) {
-            // Check if image is BLOB or filename
-            if (is_resource($row['p_image'])) {
-                // Handle BLOB data
-                $row['p_image'] = "data:image/jpeg;base64,".base64_encode(stream_get_contents($row['p_image']));
-            } else {
-                // Handle filename
-                $row['p_image'] = "http://localhost/Customer_M_system/backend/uploads/" . $row['p_image'];
-            }
-            $products[] = $row;
-        }
-        
-        echo json_encode([
-            'personalized' => $products,
-            'trending' => [],
-            'new' => []
-        ]);
-        
-    } catch (Exception $e) {
-        http_response_code(500);
-        echo json_encode(['error' => $e->getMessage()]);
+    $products = [];
+    while ($row = $result->fetch_assoc()) {
+        $row['p_image'] = handleImage($row['p_image']);
+        $products[] = $row;
     }
+    echo json_encode($products);
 }
+
+function fetchRandom() {
+    global $connect;
+    $exclude = $_GET['exclude'] ?? '';
+    $limit = $_GET['limit'] ?? 4;
+    
+    $query = "SELECT * FROM products";
+    if ($exclude) $query .= " WHERE category != '$exclude'";
+    $query .= " ORDER BY RAND() LIMIT $limit";
+    
+    $result = $connect->query($query);
+    $products = [];
+    while ($row = $result->fetch_assoc()) {
+        $row['p_image'] = handleImage($row['p_image']);
+        $products[] = $row;
+    }
+    echo json_encode($products);
+}
+
+function handleImage($image) {
+    if (is_resource($image)) {
+        $blob = stream_get_contents($image);
+        return "data:image/jpeg;base64,".base64_encode($blob);
+    }
+    return $image;
+}
+function getRecommendations() {
+global $connect;
+try {
+    $stmt = $connect->prepare("
+        (SELECT *, 'personalized' AS recommendation_type 
+        FROM products 
+        WHERE category = 'Desktop'
+        ORDER BY created_at DESC 
+        LIMIT 6)
+        
+        UNION
+        
+        (SELECT *, 'fallback' AS recommendation_type
+        FROM products 
+        WHERE category != 'Desktop'
+        ORDER BY RAND()
+        LIMIT 6)
+        
+        LIMIT 6
+    ");
+    
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $products = [];
+    while ($row = $result->fetch_assoc()) {
+        if (is_resource($row['p_image'])) {
+            $blob = stream_get_contents($row['p_image']);
+            $row['p_image'] = "data:image/jpeg;base64,".base64_encode($blob);
+        } else {
+            $row['p_image'] = "http://localhost/Customer_M_system/backend/uploads/".rawurlencode($row['p_image']);
+        }
+        $products[] = $row;
+    }
+    shuffle($products);
+    
+    echo json_encode([
+        'personalized' => array_slice($products, 0, 6),
+        'trending' => [],
+        'new' => []
+    ]);
+    
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['error' => $e->getMessage()]);
+}
+}
+
 function handleEditOrder() {
     global $connect;
     $data = json_decode(file_get_contents('php://input'), true);
@@ -216,7 +270,9 @@ function viewOrders() {
         : $_GET;
     
     $userId = $requestData['user_id'] ?? null;
-    $isAdmin = $requestData['is_admin'] ?? false;
+    $isAdmin = isset($requestData['is_admin']) 
+        ? filter_var($requestData['is_admin'], FILTER_VALIDATE_BOOLEAN)
+        : false;
 
     $query = "
         SELECT 
@@ -231,6 +287,8 @@ function viewOrders() {
         FROM orders o
         JOIN products p ON o.product_id = p.product_id
     ";
+    
+    // Add WHERE clause only if user is not admin
     if (!$isAdmin) {
         if (!$userId) {
             echo json_encode(['error' => true, 'message' => 'User ID required for non-admin users']);
@@ -239,11 +297,13 @@ function viewOrders() {
         $query .= " WHERE o.user_id = ?";
     }
     $query .= " ORDER BY o.order_date DESC";
+    
     $stmt = $connect->prepare($query);
     
     if (!$isAdmin) {
         $stmt->bind_param("i", $userId);
     }
+    
     $stmt->execute();
     $result = $stmt->get_result();
     $orders = []; 
@@ -559,7 +619,6 @@ function getLeastAvailableProductId($connect) {
     }
     return $expectedId; 
 }
-
 
 function viewProducts() {
     global $connect, $res;

@@ -11,6 +11,12 @@ $res = ['error' => false];
 $action = $_GET['action'] ?? '';
 
 switch ($action) {
+     case 'send_message':
+        sendMessage();
+        break;
+    case 'get_messages':
+        getMessagesByUser();
+        break;
     case 'create_ticket':
         createTicket();
         break;
@@ -31,6 +37,93 @@ switch ($action) {
         $res['message'] = "Invalid action.";
         echo json_encode($res);
         break;
+}
+function sendMessage() {
+    global $connect;
+    
+    $data = json_decode(file_get_contents('php://input'), true);
+    $required = ['sender_id', 'receiver_id', 'message'];
+    
+    foreach ($required as $field) {
+        if (!isset($data[$field])) {
+            echo json_encode(['error' => true, 'message' => "$field is required"]);
+            return;
+        }
+    }
+
+    try {
+        $stmt = $connect->prepare("
+            INSERT INTO messages 
+            (sender_id, receiver_id, message, status, intent, sent_at)
+            VALUES (?, ?, ?, 'sent', ?, NOW())
+        ");
+        
+        $stmt->bind_param("iiss", 
+            $data['sender_id'],
+            $data['receiver_id'],
+            $data['message'],
+            $data['intent'] ?? null
+        );
+        
+        if ($stmt->execute()) {
+            echo json_encode([
+                'success' => true,
+                'message_id' => $stmt->insert_id
+            ]);
+        } else {
+            throw new Exception('Failed to send message');
+        }
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => true, 'message' => $e->getMessage()]);
+    }
+}
+
+function getMessagesByUser() {
+    global $connect;
+    
+    $userId = isset($_GET['user_id']) ? intval($_GET['user_id']) : null;
+    $adminId = 1; // Your admin user ID
+
+    if (!$userId) {
+        http_response_code(400);
+        echo json_encode(['error' => true, 'message' => 'User ID required']);
+        return;
+    }
+
+    try {
+        $stmt = $connect->prepare("
+            SELECT * FROM messages 
+            WHERE (sender_id = ? AND receiver_id = ?)
+               OR (sender_id = ? AND receiver_id = ?)
+            ORDER BY sent_at ASC
+        ");
+        
+        // User <-> Admin conversation
+        $stmt->bind_param("iiii", $userId, $adminId, $adminId, $userId);
+        $stmt->execute();
+        
+        $result = $stmt->get_result();
+        $messages = [];
+        
+        while ($row = $result->fetch_assoc()) {
+            $messages[] = [
+                'message_id' => $row['message_id'],
+                'sender_id' => $row['sender_id'],
+                'receiver_id' => $row['receiver_id'],
+                'message' => htmlspecialchars($row['message']),
+                'sent_at' => $row['sent_at'],
+                'status' => $row['status'],
+                'intent' => $row['intent']
+            ];
+        }
+        
+        echo json_encode(['messages' => $messages]);
+        
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['error' => true, 'message' => $e->getMessage()]);
+    }
 }
 function getTicketMessages() {
     global $connect;
